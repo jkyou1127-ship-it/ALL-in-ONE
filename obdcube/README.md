@@ -6,7 +6,7 @@
 
 큐브(루빅스 큐브 등) 온라인 대회를 운영하는 앱입니다. **웹앱**(GitHub Pages)과 **Windows 데스크톱 앱(.exe)** 두 가지 형태로 동일한 기능을 제공합니다.
 
-- 웹앱: https://jkyou1127-ship-it.github.io/obdcube/
+- 웹앱: https://jkyou1127-ship-it.github.io/ALL-in-ONE/obdcube/
 - exe: GitHub Actions가 자동 빌드 (아래 "exe 다운로드" 참고)
 
 ## 주요 기능
@@ -100,8 +100,8 @@ const FIREBASE_CONFIG = {
 ## 3. GitHub Pages(웹앱) 활성화
 
 1. GitHub 저장소 **Settings → Pages** 에서 Source를 **GitHub Actions** 로 설정합니다.
-2. `main` 브랜치에 (혹은 지금 작업 브랜치가 머지된 후) 푸시되면 `.github/workflows/deploy-pages.yml` 워크플로가 자동으로 `public/` 폴더를 배포합니다.
-3. 배포가 끝나면 https://jkyou1127-ship-it.github.io/obdcube/ 에서 바로 접속 가능합니다.
+2. `main`/`claude/**` 브랜치에 푸시되면 저장소 루트의 [`.github/workflows/deploy-pages.yml`](../.github/workflows/deploy-pages.yml) 워크플로가 `timer/`까지 함께 빌드해 하나의 사이트로 배포합니다.
+3. 배포가 끝나면 https://jkyou1127-ship-it.github.io/ALL-in-ONE/obdcube/ 에서 바로 접속 가능합니다.
 
 ## 4. exe(Windows 데스크톱 앱) 받기
 

@@ -12,7 +12,7 @@
 
 ## 통합 로그인
 
-`timer`와 `obdcube`는 **같은 Firebase 프로젝트**(`obdcube`)를 사용합니다. 즉 한 이메일/비밀번호 계정으로
+`timer`와 `obdcube`는 **같은 Firebase 프로젝트**(`all-in-one-bfc59`)를 사용합니다. 즉 한 이메일/비밀번호 계정으로
 두 앱 모두 로그인되고, 관리자 권한(Firestore `admins/{uid}` 컬렉션)도 공유됩니다. `timer` 앱의 기록은
 같은 프로젝트 안에 `users/{uid}/solves/{id}` 서브컬렉션으로 저장되어, 계정을 삭제하면 두 앱의 데이터가
 함께 정리됩니다.
