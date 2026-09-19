@@ -158,20 +158,56 @@ async function renderMyLicenseApplications() {
 
 // ---- 관리자: 조건 관리 ----
 
-function requirementsTextareaValue(items) {
-  return (items || []).map(i => `${i.grade} | ${i.name} | ${i.value}`).join("\n");
+// 조건 한 줄(등급/종목·레벨/기준값)을 입력 칸 3개짜리 행으로 표시한다.
+// 행 안 칸에서 Enter를 누르면 바로 아래에 새 빈 행이 자동으로 추가된다.
+function createRequirementRowElement(typeKey, item) {
+  const row = document.createElement("div");
+  row.className = "requirement-row";
+  row.innerHTML = `
+    <input type="text" class="requirement-grade" placeholder="등급 (예: 1급)" value="${escapeHtml(item && item.grade)}" />
+    <input type="text" class="requirement-name" placeholder="${escapeHtml(LICENSE_TYPES[typeKey].nameLabel)} (예: ${typeKey === "c" ? "3x3x3 큐브" : "7.5 Reflection"})" value="${escapeHtml(item && item.name)}" />
+    <input type="text" class="requirement-value" placeholder="기준값 (예: ${typeKey === "c" ? "15.00" : "95.00%"})" value="${escapeHtml(item && item.value)}" />
+    <button type="button" class="btn small danger requirement-row-remove" title="이 조건 삭제">×</button>
+  `;
+  row.querySelectorAll("input").forEach(input => {
+    input.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      addRequirementRow(typeKey, row);
+    });
+  });
+  row.querySelector(".requirement-row-remove").addEventListener("click", () => row.remove());
+  return row;
 }
 
-function parseRequirementLines(text) {
-  return String(text || "")
-    .split("\n")
-    .map(line => {
-      const parts = line.split("|").map(p => p.trim());
-      if (parts.length !== 3) return null;
-      const [grade, name, value] = parts;
-      return grade && name && value ? { grade, name, value } : null;
-    })
-    .filter(Boolean);
+function addRequirementRow(typeKey, afterRow) {
+  const container = el(`admin-requirements-${typeKey}-rows`);
+  const row = createRequirementRowElement(typeKey, null);
+  if (afterRow && afterRow.nextSibling) {
+    container.insertBefore(row, afterRow.nextSibling);
+  } else {
+    container.appendChild(row);
+  }
+  row.querySelector(".requirement-grade").focus();
+  return row;
+}
+
+function renderRequirementRows(typeKey, items) {
+  const container = el(`admin-requirements-${typeKey}-rows`);
+  container.innerHTML = "";
+  const list = items && items.length ? items : [null];
+  list.forEach(item => container.appendChild(createRequirementRowElement(typeKey, item)));
+}
+
+function collectRequirementRows(typeKey) {
+  const rows = Array.from(el(`admin-requirements-${typeKey}-rows`).querySelectorAll(".requirement-row"));
+  return rows
+    .map(row => ({
+      grade: row.querySelector(".requirement-grade").value.trim(),
+      name: row.querySelector(".requirement-name").value.trim(),
+      value: row.querySelector(".requirement-value").value.trim()
+    }))
+    .filter(i => i.grade && i.name && i.value);
 }
 
 async function renderRequirementsAdmin() {
@@ -179,15 +215,18 @@ async function renderRequirementsAdmin() {
     fetchLicenseRequirements("c"),
     fetchLicenseRequirements("a")
   ]);
-  el("admin-requirements-c").value = requirementsTextareaValue(cItems);
-  el("admin-requirements-a").value = requirementsTextareaValue(aItems);
+  renderRequirementRows("c", cItems);
+  renderRequirementRows("a", aItems);
 }
 
 function initRequirementsAdminForm() {
+  el("btn-add-requirement-c").addEventListener("click", () => addRequirementRow("c"));
+  el("btn-add-requirement-a").addEventListener("click", () => addRequirementRow("a"));
+
   el("form-requirements-c").addEventListener("submit", async (e) => {
     e.preventDefault();
     try {
-      await setLicenseRequirements("c", parseRequirementLines(el("admin-requirements-c").value));
+      await setLicenseRequirements("c", collectRequirementRows("c"));
       showToast("C License 조건을 저장했습니다.", "success");
       await renderLicenseRequirements();
     } catch (err) {
@@ -198,7 +237,7 @@ function initRequirementsAdminForm() {
   el("form-requirements-a").addEventListener("submit", async (e) => {
     e.preventDefault();
     try {
-      await setLicenseRequirements("a", parseRequirementLines(el("admin-requirements-a").value));
+      await setLicenseRequirements("a", collectRequirementRows("a"));
       showToast("A License 조건을 저장했습니다.", "success");
       await renderLicenseRequirements();
     } catch (err) {
