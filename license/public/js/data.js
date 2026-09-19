@@ -80,25 +80,6 @@ async function fetchMyLicense(uid) {
   return snap.exists ? snap.data() : {};
 }
 
-// 관리자 전용: 발급(신규) 또는 종목/레벨-값 목록 수정. 기존에 발급된 적이 있으면
-// 번호는 그대로 유지하고 항목/활성 여부만 갱신한다. items: [{name, value}]
-async function issueOrUpdateLicense(uid, typeKey, items) {
-  const type = LICENSE_TYPES[typeKey];
-  const ref = db.collection("licenses").doc(uid);
-  const snap = await ref.get();
-  const existing = snap.exists ? snap.data()[type.field] : null;
-  const licenseNo = (existing && existing.licenseNo) || await generateLicenseNo(typeKey);
-  await ref.set({
-    [type.field]: {
-      active: true,
-      licenseNo,
-      issuedAt: (existing && existing.issuedAt) || firebase.firestore.FieldValue.serverTimestamp(),
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      [type.itemsField]: items
-    }
-  }, { merge: true });
-}
-
 async function revokeLicense(uid, typeKey) {
   const type = LICENSE_TYPES[typeKey];
   const ref = db.collection("licenses").doc(uid);
@@ -108,24 +89,31 @@ async function revokeLicense(uid, typeKey) {
   await ref.set({ [type.field]: { ...existing, active: false } }, { merge: true });
 }
 
-// ---- 라이선스 등급 이름 목록 (관리자가 지정) ----
-// 등급을 자유 텍스트로 매번 새로 타이핑하는 대신, 관리자가 미리 이름 목록을 정해두면
-// 사용자별 등급 저장 시 그 목록에서 고르게 된다. 문서 구조: licenseGrades/{typeKey} = { names: [...] }
-
-async function fetchLicenseGradeOptions(typeKey) {
-  const snap = await db.collection("licenseGrades").doc(typeKey).get();
-  return snap.exists ? (snap.data().names || []) : [];
+// 관리자 전용: 항목(종목/레벨 + 기록/정확도) 등록과 그 항목이 속한 등급을 함께 반영한다.
+// 기존에 발급된 적이 있으면 번호는 그대로 유지한다. item: {grade, name, value}
+async function upsertLicenseItem(uid, typeKey, item) {
+  const type = LICENSE_TYPES[typeKey];
+  const ref = db.collection("licenses").doc(uid);
+  const snap = await ref.get();
+  const existing = snap.exists ? snap.data()[type.field] : null;
+  const items = (existing && existing[type.itemsField]) || [];
+  const idx = items.findIndex(i => i.name === item.name);
+  const storedItem = { name: item.name, value: item.value };
+  if (idx >= 0) items[idx] = storedItem; else items.push(storedItem);
+  const licenseNo = (existing && existing.licenseNo) || await generateLicenseNo(typeKey);
+  await ref.set({
+    [type.field]: {
+      active: true,
+      licenseNo,
+      grade: item.grade,
+      issuedAt: (existing && existing.issuedAt) || firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      [type.itemsField]: items
+    }
+  }, { merge: true });
 }
 
-async function setLicenseGradeOptions(typeKey, names) {
-  await db.collection("licenseGrades").doc(typeKey).set({
-    names,
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
-}
-
-// 관리자 전용: 라이선스 등급(관리자가 정한 목록 중 하나) 입력/수정.
-// 라이선스가 아직 없으면(미발급) 등급만 먼저 적을 수는 없고, 최소 한 번은 신청이 승인되어야 한다.
+// 관리자 전용: 등급만 다시 지정(오타 수정 등). 라이선스가 아직 없으면(미발급) 먼저 신청이 승인되어야 한다.
 async function setLicenseGrade(uid, typeKey, grade) {
   const type = LICENSE_TYPES[typeKey];
   const ref = db.collection("licenses").doc(uid);
@@ -135,31 +123,9 @@ async function setLicenseGrade(uid, typeKey, grade) {
   await ref.set({ [type.field]: { ...existing, grade, updatedAt: firebase.firestore.FieldValue.serverTimestamp() } }, { merge: true });
 }
 
-// 관리자 전용: 승인된 항목을 직접 한 번 더 손볼 때(오타 수정 등) 쓰는 저수준 함수.
-// 정상적인 등록 경로는 신청 -> 승인(approveLicenseApplication)이다.
-async function upsertLicenseItem(uid, typeKey, item) {
-  const type = LICENSE_TYPES[typeKey];
-  const ref = db.collection("licenses").doc(uid);
-  const snap = await ref.get();
-  const existing = snap.exists ? snap.data()[type.field] : null;
-  const items = (existing && existing[type.itemsField]) || [];
-  const idx = items.findIndex(i => i.name === item.name);
-  if (idx >= 0) items[idx] = item; else items.push(item);
-  const licenseNo = (existing && existing.licenseNo) || await generateLicenseNo(typeKey);
-  await ref.set({
-    [type.field]: {
-      active: true,
-      licenseNo,
-      issuedAt: (existing && existing.issuedAt) || firebase.firestore.FieldValue.serverTimestamp(),
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      [type.itemsField]: items
-    }
-  }, { merge: true });
-}
-
 // ---- 라이선스 신청 조건 (관리자가 지정) ----
-// C: 종목별 기준 기록(이 기록을 달성해야 신청 가능), A: 레벨별 기준 정확도.
-// 문서 구조: licenseRequirements/{typeKey} = { items: [{name, value}] }
+// 등급마다 C: 종목별 기준 기록(이 기록을 달성해야 신청 가능), A: 레벨별 기준 정확도를 정한다.
+// 문서 구조: licenseRequirements/{typeKey} = { items: [{grade, name, value}] }
 
 async function fetchLicenseRequirements(typeKey) {
   const snap = await db.collection("licenseRequirements").doc(typeKey).get();
@@ -175,15 +141,16 @@ async function setLicenseRequirements(typeKey, items) {
 
 // ---- 라이선스 신청 (신청 -> 관리자 승인 -> licenses에 반영) ----
 // 문서 구조: licenseApplications/{appId} = {
-//   applicantUid, applicantNickname, typeKey: 'c'|'a', itemName, claimedValue,
+//   applicantUid, applicantNickname, typeKey: 'c'|'a', grade, itemName, claimedValue,
 //   status: 'pending'|'approved'|'rejected', createdAt, reviewedAt, reviewedByNickname, rejectReason
 // }
 
-async function submitLicenseApplication({ typeKey, itemName, claimedValue }) {
+async function submitLicenseApplication({ typeKey, grade, itemName, claimedValue }) {
   return db.collection("licenseApplications").add({
     applicantUid: AppState.user.uid,
     applicantNickname: AppState.profile.nickname,
     typeKey,
+    grade,
     itemName,
     claimedValue,
     status: "pending",
@@ -221,10 +188,10 @@ async function fetchReviewedLicenseApplications() {
   return list;
 }
 
-// 승인: 신청 상태를 approved로 바꾸고, 신청자의 licenses 문서에 해당 항목(이름+신청값)을
+// 승인: 신청 상태를 approved로 바꾸고, 신청자의 licenses 문서에 해당 항목(이름+신청값)과 등급을
 // 반영한다(기존에 같은 이름 항목이 있으면 값을 갱신). 최초 승인이면 라이선스 번호를 새로 발급한다.
 async function approveLicenseApplication(app) {
-  await upsertLicenseItem(app.applicantUid, app.typeKey, { name: app.itemName, value: app.claimedValue });
+  await upsertLicenseItem(app.applicantUid, app.typeKey, { grade: app.grade, name: app.itemName, value: app.claimedValue });
   await db.collection("licenseApplications").doc(app.id).update({
     status: "approved",
     reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),

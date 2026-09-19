@@ -59,7 +59,7 @@ function requirementRowsHtml(typeKey, items) {
   if (!items || items.length === 0) return `<p class="license-item-list--empty">아직 관리자가 등록한 조건이 없습니다.</p>`;
   return `<div class="license-item-list">${items.map(i => `
     <div class="license-item-row">
-      <span class="license-item-row__name">${escapeHtml(i.name)}</span>
+      <span class="license-item-row__name">${escapeHtml(i.grade)} - ${escapeHtml(i.name)}</span>
       <span class="license-item-row__value">${escapeHtml(type.valueLabel)} ${escapeHtml(i.value)}</span>
     </div>
   `).join("")}</div>`;
@@ -91,7 +91,7 @@ function fillApplyItemOptions() {
   const items = requirementsCache[typeKey] || [];
   const type = LICENSE_TYPES[typeKey];
   el("apply-item-name").innerHTML = items.length
-    ? items.map(i => `<option value="${escapeHtml(i.name)}">${escapeHtml(i.name)} (기준 ${type.valueLabel}: ${escapeHtml(i.value)})</option>`).join("")
+    ? items.map((i, idx) => `<option value="${idx}">${escapeHtml(i.grade)} - ${escapeHtml(i.name)} (기준 ${type.valueLabel}: ${escapeHtml(i.value)})</option>`).join("")
     : `<option value="">등록된 조건이 없습니다</option>`;
   el("apply-value-label").textContent = `내 ${type.valueLabel}`;
 }
@@ -102,12 +102,13 @@ function initLicenseApplyForm() {
   el("form-license-apply").addEventListener("submit", async (e) => {
     e.preventDefault();
     const typeKey = el("apply-type").value;
-    const itemName = el("apply-item-name").value;
+    const idxValue = el("apply-item-name").value;
     const claimedValue = el("apply-value").value.trim();
-    if (!itemName) { showToast("신청할 조건이 없습니다. 관리자에게 문의해주세요.", "error"); return; }
+    const item = idxValue !== "" ? (requirementsCache[typeKey] || [])[Number(idxValue)] : null;
+    if (!item) { showToast("신청할 조건이 없습니다. 관리자에게 문의해주세요.", "error"); return; }
     if (!claimedValue) { showToast(`달성한 ${LICENSE_TYPES[typeKey].valueLabel}을(를) 입력해주세요.`, "error"); return; }
     try {
-      await submitLicenseApplication({ typeKey, itemName, claimedValue });
+      await submitLicenseApplication({ typeKey, grade: item.grade, itemName: item.name, claimedValue });
       el("apply-value").value = "";
       showToast("신청이 접수되었습니다. 관리자 승인을 기다려주세요.", "success");
       await renderMyLicenseApplications();
@@ -122,7 +123,7 @@ function applicationRowHtml(app, showCancel) {
   return `
     <div class="item-card" data-id="${app.id}">
       <div class="info">
-        <strong>${type.label} - ${escapeHtml(app.itemName)}</strong>
+        <strong>${type.label} - ${escapeHtml(app.grade)} ${escapeHtml(app.itemName)}</strong>
         <span>신청 ${escapeHtml(type.valueLabel)}: ${escapeHtml(app.claimedValue)}</span>
         ${app.status === "rejected" && app.rejectReason ? `<span>반려 사유: ${escapeHtml(app.rejectReason)}</span>` : ""}
       </div>
@@ -158,18 +159,17 @@ async function renderMyLicenseApplications() {
 // ---- 관리자: 조건 관리 ----
 
 function requirementsTextareaValue(items) {
-  return (items || []).map(i => `${i.name} | ${i.value}`).join("\n");
+  return (items || []).map(i => `${i.grade} | ${i.name} | ${i.value}`).join("\n");
 }
 
 function parseRequirementLines(text) {
   return String(text || "")
     .split("\n")
     .map(line => {
-      const idx = line.indexOf("|");
-      if (idx === -1) return null;
-      const name = line.slice(0, idx).trim();
-      const value = line.slice(idx + 1).trim();
-      return name && value ? { name, value } : null;
+      const parts = line.split("|").map(p => p.trim());
+      if (parts.length !== 3) return null;
+      const [grade, name, value] = parts;
+      return grade && name && value ? { grade, name, value } : null;
     })
     .filter(Boolean);
 }
@@ -207,66 +207,15 @@ function initRequirementsAdminForm() {
   });
 }
 
-// ---- 관리자: 등급 이름 목록 관리 ----
-
-let gradeOptionsCache = { c: [], a: [] };
-
-function gradeOptionsTextareaValue(names) {
-  return (names || []).join("\n");
-}
-
-function parseGradeOptionLines(text) {
-  return String(text || "")
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean);
-}
-
-async function renderGradeOptionsAdmin() {
-  const [cNames, aNames] = await Promise.all([
-    fetchLicenseGradeOptions("c"),
-    fetchLicenseGradeOptions("a")
-  ]);
-  gradeOptionsCache = { c: cNames, a: aNames };
-  el("admin-grades-c").value = gradeOptionsTextareaValue(cNames);
-  el("admin-grades-a").value = gradeOptionsTextareaValue(aNames);
-}
-
-function initGradeOptionsAdminForm() {
-  el("form-grades-c").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    try {
-      const names = parseGradeOptionLines(el("admin-grades-c").value);
-      await setLicenseGradeOptions("c", names);
-      gradeOptionsCache.c = names;
-      showToast("C License 등급 이름 목록을 저장했습니다.", "success");
-    } catch (err) {
-      showToast(err.message, "error");
-    }
-  });
-
-  el("form-grades-a").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    try {
-      const names = parseGradeOptionLines(el("admin-grades-a").value);
-      await setLicenseGradeOptions("a", names);
-      gradeOptionsCache.a = names;
-      showToast("A License 등급 이름 목록을 저장했습니다.", "success");
-    } catch (err) {
-      showToast(err.message, "error");
-    }
-  });
-}
-
 // ---- 관리자: 신청 승인 대기 ----
 
 function pendingApplicationRowHtml(app) {
   const type = LICENSE_TYPES[app.typeKey];
-  const requirement = (requirementsCache[app.typeKey] || []).find(i => i.name === app.itemName);
+  const requirement = (requirementsCache[app.typeKey] || []).find(i => i.grade === app.grade && i.name === app.itemName);
   return `
     <div class="item-card" data-id="${app.id}">
       <div class="info">
-        <strong>${escapeHtml(app.applicantNickname)} - ${type.label}: ${escapeHtml(app.itemName)}</strong>
+        <strong>${escapeHtml(app.applicantNickname)} - ${type.label}: ${escapeHtml(app.grade)} ${escapeHtml(app.itemName)}</strong>
         <span>신청 ${escapeHtml(type.valueLabel)}: ${escapeHtml(app.claimedValue)}${requirement ? ` (기준: ${escapeHtml(requirement.value)})` : ""}</span>
       </div>
       <div class="actions">
@@ -337,9 +286,9 @@ async function renderLicenseAdminTarget(user) {
   function gradeFormHtml(typeKey) {
     const data = typeKey === "c" ? license.cLicense : license.aLicense;
     if (!data) return "";
-    const options = gradeOptionsCache[typeKey] || [];
+    const options = Array.from(new Set((requirementsCache[typeKey] || []).map(i => i.grade).filter(Boolean)));
     if (options.length === 0) {
-      return `<p class="license-item-list--empty">등급을 저장하려면 먼저 "등급 이름 관리"에서 ${escapeHtml(LICENSE_TYPES[typeKey].label)} 등급 이름을 등록하세요.</p>`;
+      return `<p class="license-item-list--empty">등급을 저장하려면 먼저 "라이선스 조건 관리"에서 ${escapeHtml(LICENSE_TYPES[typeKey].label)} 조건에 등급을 포함해 등록하세요.</p>`;
     }
     const currentGrade = data.grade || "";
     return `
@@ -417,14 +366,12 @@ function initLicenseAdminSearchForm() {
 
 function initLicenseAdmin() {
   initRequirementsAdminForm();
-  initGradeOptionsAdminForm();
   initLicenseAdminSearchForm();
 }
 
 async function renderLicenseAdminView() {
   await Promise.all([
     renderRequirementsAdmin(),
-    renderGradeOptionsAdmin(),
     renderPendingLicenseApplications(),
     renderReviewedLicenseApplications(),
   ]);

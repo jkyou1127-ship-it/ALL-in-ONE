@@ -55,17 +55,10 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // 라이선스 신청 조건 (관리자가 지정) - C: 종목별 기준 기록, A: 레벨별 기준 정확도.
+    // 라이선스 신청 조건 (관리자가 지정) - 등급마다 C: 종목별 기준 기록, A: 레벨별 기준 정확도를 정한다.
     // 누구나 열람 가능(신청 전에 조건을 봐야 함), 관리자만 수정 가능.
-    // 문서 구조: licenseRequirements/c = { items: [{name, value}] }, licenseRequirements/a = 동일
+    // 문서 구조: licenseRequirements/c = { items: [{grade, name, value}] }, licenseRequirements/a = 동일
     match /licenseRequirements/{typeKey} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
-    }
-
-    // 라이선스 등급 이름 목록 (관리자가 지정) - 사용자별 등급 저장 시 이 목록 중에서 고른다.
-    // 문서 구조: licenseGrades/c = { names: [...] }, licenseGrades/a = 동일
-    match /licenseGrades/{typeKey} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
