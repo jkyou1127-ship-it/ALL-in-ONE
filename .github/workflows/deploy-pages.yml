@@ -9,6 +9,7 @@ on:
       - 'index.html'
       - 'timer/**'
       - 'obdcube/public/**'
+      - 'license/public/**'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch: {}
 
@@ -45,6 +46,7 @@ jobs:
           cp index.html site/index.html
           cp -r timer/dist site/timer
           cp -r obdcube/public site/obdcube
+          cp -r license/public site/license
 
       - uses: actions/configure-pages@v5
 

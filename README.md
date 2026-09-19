@@ -1,48 +1,49 @@
 # ALL-in-ONE
 
-큐브 타이머와 OBD Cube(온라인 큐브 대회 플랫폼)를 하나의 사이트로 묶고, **통합 로그인**과
-**C License(큐브) / A License(ADOFAI)** 라이선스 관리 기능을 더한 저장소입니다.
+큐브 타이머, OBD Cube(온라인 큐브 대회 플랫폼), License(C/A 라이선스 관리)를 하나의 사이트로 묶고
+**통합 로그인**을 적용한 저장소입니다.
 
 - [`timer/`](./timer) — 큐브 연습 타이머 (스크램블, 기록/통계, ao5·ao12, 세션 관리)
-- [`obdcube/`](./obdcube) — OBD Cube 온라인 큐브 대회 플랫폼 (대회 개최/참가, 순위, 상장/명찰, **라이선스 관리**)
-- 루트 [`index.html`](./index.html) — 두 앱으로 가는 허브 랜딩 페이지
+- [`obdcube/`](./obdcube) — OBD Cube 온라인 큐브 대회 플랫폼 (대회 개최/참가, 순위, 상장/명찰)
+- [`license/`](./license) — C License(큐브) / A License(ADOFAI) 발급·조회 앱
+- 루트 [`index.html`](./index.html) — 세 앱으로 가는 허브 랜딩 페이지
 
-두 앱은 원래 각각 별도의 저장소(`obdcube`, `cube_app`)에서 개발되던 것을 이 저장소로 그대로 이식했습니다.
-기능은 각 앱에서 동작하던 것과 동일합니다.
+`timer`, `obdcube`는 원래 각각 별도의 저장소(`cube_app`, `obdcube`)에서 개발되던 것을 이 저장소로 그대로
+이식했고, `license`는 그 위에 새로 추가한 앱입니다.
 
 ## 통합 로그인
 
-`timer`와 `obdcube`는 **같은 Firebase 프로젝트**(`all-in-one-bfc59`)를 사용합니다. 즉 한 이메일/비밀번호 계정으로
-두 앱 모두 로그인되고, 관리자 권한(Firestore `admins/{uid}` 컬렉션)도 공유됩니다. `timer` 앱의 기록은
-같은 프로젝트 안에 `users/{uid}/solves/{id}` 서브컬렉션으로 저장되어, 계정을 삭제하면 두 앱의 데이터가
-함께 정리됩니다.
+세 앱 모두 **같은 Firebase 프로젝트**(`all-in-one-bfc59`)를 사용합니다. 한 이메일/비밀번호 계정으로 세 앱
+모두 로그인되고, 관리자 권한(Firestore `admins/{uid}` 컬렉션)도 공유됩니다. `timer` 앱의 기록은 같은
+프로젝트 안에 `users/{uid}/solves/{id}` 서브컬렉션으로 저장되어, 계정을 삭제하면 데이터가 함께 정리됩니다.
 
-회원가입도 완전히 같은 스키마를 씁니다 - `timer`에서 가입해도 `obdcube`와 똑같이 **닉네임**을 입력받아
+회원가입도 완전히 같은 스키마를 씁니다 - 세 앱 어디서 가입해도 같은 방식으로 **닉네임**을 입력받아
 `users/{uid}`(nickname/email/obdId), `nicknames/{nickname}` 문서를 만들고 **OBD ID**까지 발급하므로,
-어느 앱에서 가입하든 두 앱에서 같은 닉네임·OBD ID로 보입니다. 각 앱 헤더에는 다른 앱으로 바로 이동하는
-링크도 있습니다 (`timer` 상단의 🏆, `obdcube` 상단의 🧊 타이머).
+어느 앱에서 가입하든 세 앱에서 같은 닉네임·OBD ID로 보입니다. 각 앱 헤더에는 다른 두 앱으로 바로 이동하는
+링크가 있습니다.
 
 ## C License / A License
 
-`obdcube` 앱의 "라이선스" 탭·관리자 페이지에서 관리합니다.
+별도 앱인 [`license/`](./license)에서 관리합니다. 로그인하면 본인의 두 라이선스 카드가 보이고, 관리자는
+"라이선스 관리" 패널에서 닉네임으로 사용자를 검색해 발급/수정/회수합니다.
 
 | | C License | A License |
 |---|---|---|
 | 대상 | 큐브 | ADOFAI(얼불춤) |
 | 실제 플레이 장소 | 오프라인 큐브 대회 (이 앱이 아님) | 실제 ADOFAI 게임 (이 앱이 아님) |
-| 지정 항목 | 지정 종목 (관리자가 직접 지정) | 지정 레벨 (관리자가 직접 지정) |
+| 담기는 항목 | **종목별 기록(시간)** — 관리자가 직접 입력 | **지정 레벨별 정확도** — 관리자가 직접 입력 |
 
-라이선스는 발급 여부·발급 번호·발급일·지정 종목(레벨) 목록을 관리하는 **자격 증명**입니다. 실제 대회 출전이나
-게임 플레이 자체는 이 앱의 기능이 아니며, 관리자가 라이선스 관리 패널에서 닉네임으로 사용자를 검색해
-발급/수정/회수합니다. Firestore `licenses/{uid}` 컬렉션에 저장되고, 본인은 읽기만 가능하며 쓰기는 관리자만
-가능합니다 (자세한 규칙은 [`obdcube/firestore.rules`](./obdcube/firestore.rules) 참고).
+라이선스는 발급 여부·발급 번호·발급일·종목별 기록(레벨별 정확도) 목록을 관리하는 **자격 증명**입니다. 실제
+대회 출전이나 게임 플레이 자체는 이 앱의 기능이 아닙니다. Firestore `licenses/{uid}` 컬렉션에 저장되고,
+본인은 읽기만 가능하며 쓰기는 관리자만 가능합니다 (자세한 규칙은 [`obdcube/firestore.rules`](./obdcube/firestore.rules) 참고 —
+세 앱이 같은 프로젝트를 쓰므로 규칙도 하나로 공유됩니다).
 
 ## Firebase 설정 (최초 1회)
 
-두 앱이 프로젝트 하나를 공유하므로, Firebase 설정은 [`obdcube/README.md`](./obdcube/README.md)의
-"Firebase 프로젝트 설정" 절차를 한 번만 따라 하면 됩니다. `timer/src/lib/firebase.ts`는 이미 같은
-프로젝트 설정값을 가리키도록 되어 있습니다 (직접 소유한 Firebase 프로젝트를 쓰려면 `obdcube/public/js/firebase-config.js`와
-`timer/src/lib/firebase.ts` 양쪽의 config 값을 함께 바꿔주세요).
+세 앱이 프로젝트 하나를 공유하므로, Firebase 설정은 [`obdcube/README.md`](./obdcube/README.md)의
+"Firebase 프로젝트 설정" 절차를 한 번만 따라 하면 됩니다. 직접 소유한 Firebase 프로젝트를 쓰려면
+`obdcube/public/js/firebase-config.js`, `license/public/js/firebase-config.js`,
+`timer/src/lib/firebase.ts` 세 곳의 config 값을 함께 바꿔주세요.
 
 ## 배포 (GitHub Pages)
 
@@ -50,12 +51,12 @@
 `main`/`claude/**` 브랜치 푸시마다 다음을 수행합니다.
 
 1. `timer/`를 빌드 (`npm ci && npm run build`)
-2. 루트 `index.html` + 빌드된 `timer/dist` + `obdcube/public`을 하나의 사이트로 조합
-3. GitHub Pages에 배포 — `/`(랜딩), `/timer/`(큐브 타이머), `/obdcube/`(OBD Cube)
+2. 루트 `index.html` + 빌드된 `timer/dist` + `obdcube/public` + `license/public`을 하나의 사이트로 조합
+3. GitHub Pages에 배포 — `/`(랜딩), `/timer/`(큐브 타이머), `/obdcube/`(OBD Cube), `/license/`(License)
 
 ## Windows 데스크톱 앱(.exe)
 
-각 앱은 독립적인 Electron 빌드도 그대로 유지합니다.
+`timer`, `obdcube`는 독립적인 Electron 빌드도 그대로 유지합니다 (`license`는 웹 전용).
 
 - `.github/workflows/build-timer-windows.yml` — `timer/` → `Release Build 1.0.exe`
 - `.github/workflows/build-obdcube-windows.yml` — `obdcube/` → NSIS 설치 파일 + 포터블 exe
@@ -65,7 +66,8 @@
 ```
 index.html                 허브 랜딩 페이지
 timer/                      큐브 타이머 (React + TypeScript + Vite)
-obdcube/                    OBD Cube 대회 플랫폼 (바닐라 JS + Firebase, 라이선스 기능 포함)
+obdcube/                    OBD Cube 대회 플랫폼 (바닐라 JS + Firebase)
+license/                    C/A License 앱 (바닐라 JS + Firebase)
 .github/workflows/
   deploy-pages.yml          GitHub Pages 통합 배포
   build-timer-windows.yml   큐브 타이머 exe 빌드

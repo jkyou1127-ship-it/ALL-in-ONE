@@ -1,21 +1,39 @@
-// 라이선스 화면: 본인 라이선스 열람 + 관리자 발급/회수/지정 종목·레벨 관리
-// C License = 큐브, A License = ADOFAI(얼불춤). 실제 플레이는 이 앱 밖(오프라인 대회 /
-// 실제 ADOFAI 게임)에서 이루어지고, 여기서는 자격(발급 여부·지정 종목/레벨)만 다룬다.
+// 라이선스 화면: 본인 라이선스 열람 + 관리자 발급/회수/항목 관리
+// C License = 큐브(종목별 기록), A License = ADOFAI/얼불춤(레벨별 정확도).
+// 실제 플레이는 이 앱 밖(오프라인 대회 / 실제 ADOFAI 게임)에서 이루어지고,
+// 여기서는 자격(발급 여부·종목별 기록/레벨별 정확도)만 관리한다.
 
-function licenseItemsFromInput(text) {
+// 관리자가 한 줄에 하나씩 "이름 | 값" 형식으로 입력한 텍스트를 [{name, value}]로 변환.
+function parseLicenseItems(text) {
   return String(text || "")
-    .split(",")
-    .map(s => s.trim())
+    .split("\n")
+    .map(line => {
+      const idx = line.indexOf("|");
+      if (idx === -1) return null;
+      const name = line.slice(0, idx).trim();
+      const value = line.slice(idx + 1).trim();
+      return name && value ? { name, value } : null;
+    })
     .filter(Boolean);
 }
 
-function renderLicenseChips(items) {
-  if (!items || items.length === 0) return `<span class="license-chip license-chip--empty">지정된 항목 없음</span>`;
-  return items.map(i => `<span class="license-chip">${escapeHtml(i)}</span>`).join("");
+function licenseItemsToText(items) {
+  return (items || []).map(i => `${i.name} | ${i.value}`).join("\n");
 }
 
-// readOnly: 본인 열람용(발급/회수 버튼 없음). actions: 관리자용 버튼 HTML을 끼워 넣을 때 사용.
-function buildLicenseCardHtml(typeKey, licenseData, actionsHtml) {
+function renderLicenseItemRows(type, items) {
+  if (!items || items.length === 0) {
+    return `<p class="license-item-list--empty">등록된 ${escapeHtml(type.itemsLabel)}이(가) 없습니다.</p>`;
+  }
+  return `<div class="license-item-list">${items.map(i => `
+    <div class="license-item-row">
+      <span class="license-item-row__name">${escapeHtml(i.name)}</span>
+      <span class="license-item-row__value">${escapeHtml(i.value)}</span>
+    </div>
+  `).join("")}</div>`;
+}
+
+function buildLicenseCardHtml(typeKey, licenseData) {
   const type = LICENSE_TYPES[typeKey];
   const active = !!(licenseData && licenseData.active);
   const items = (licenseData && licenseData[type.itemsField]) || [];
@@ -32,22 +50,19 @@ function buildLicenseCardHtml(typeKey, licenseData, actionsHtml) {
         <p class="license-card__no">${licenseData && licenseData.licenseNo ? escapeHtml(licenseData.licenseNo) : "-"}</p>
         <p class="desc">발급일: ${licenseData && licenseData.issuedAt ? formatDate(licenseData.issuedAt) : "-"}</p>
         <p class="license-card__items-label">${type.itemsLabel}</p>
-        <div class="license-chip-row">${renderLicenseChips(items)}</div>
+        ${renderLicenseItemRows(type, items)}
       </div>
-      ${actionsHtml ? `<div class="license-card__actions">${actionsHtml}</div>` : ""}
     </div>
   `;
 }
 
 // ---- 본인 열람 ----
 
-async function renderLicenseView() {
+async function renderMyLicenseView() {
   const container = el("license-cards");
   container.innerHTML = "<p class='desc'>불러오는 중...</p>";
   const license = await fetchMyLicense(AppState.user.uid);
-  container.innerHTML =
-    buildLicenseCardHtml("c", license.cLicense, "") +
-    buildLicenseCardHtml("a", license.aLicense, "");
+  container.innerHTML = buildLicenseCardHtml("c", license.cLicense) + buildLicenseCardHtml("a", license.aLicense);
 }
 
 // ---- 관리자 ----
@@ -58,9 +73,12 @@ function licenseAdminEditFormHtml(typeKey, uid, licenseData) {
   const active = !!(licenseData && licenseData.active);
   return `
     <form class="inline-form license-admin-edit-form" data-type="${typeKey}" data-uid="${uid}">
-      <input type="text" class="license-admin-items-input" placeholder="${type.itemsLabel} (쉼표로 구분)" value="${escapeHtml(items.join(", "))}" />
-      <button type="submit" class="btn small primary">${licenseData ? "저장" : "발급"}</button>
-      ${active ? `<button type="button" class="btn small danger license-admin-revoke-btn" data-type="${typeKey}">회수</button>` : ""}
+      <p class="license-admin-edit-hint">한 줄에 하나씩, "${escapeHtml(type.nameLabel)} | ${escapeHtml(type.valueLabel)}" 형식으로 입력하세요. (예: ${escapeHtml(type.placeholder)})</p>
+      <textarea class="license-admin-items-input" placeholder="${escapeHtml(type.placeholder)}">${escapeHtml(licenseItemsToText(items))}</textarea>
+      <div class="inline-form">
+        <button type="submit" class="btn small primary">${licenseData ? "저장" : "발급"}</button>
+        ${active ? `<button type="button" class="btn small danger license-admin-revoke-btn" data-type="${typeKey}">회수</button>` : ""}
+      </div>
     </form>
   `;
 }
@@ -75,11 +93,11 @@ async function renderLicenseAdminTarget(user) {
       <h3>${escapeHtml(user.nickname)} <span class="desc">(${escapeHtml(user.obdId || "-")})</span></h3>
       <div class="license-cards license-cards--admin">
         <div>
-          ${buildLicenseCardHtml("c", license.cLicense, "")}
+          ${buildLicenseCardHtml("c", license.cLicense)}
           ${licenseAdminEditFormHtml("c", user.uid, license.cLicense)}
         </div>
         <div>
-          ${buildLicenseCardHtml("a", license.aLicense, "")}
+          ${buildLicenseCardHtml("a", license.aLicense)}
           ${licenseAdminEditFormHtml("a", user.uid, license.aLicense)}
         </div>
       </div>
@@ -91,7 +109,7 @@ async function renderLicenseAdminTarget(user) {
       e.preventDefault();
       const typeKey = form.dataset.type;
       const targetUid = form.dataset.uid;
-      const items = licenseItemsFromInput(form.querySelector(".license-admin-items-input").value);
+      const items = parseLicenseItems(form.querySelector(".license-admin-items-input").value);
       try {
         await issueOrUpdateLicense(targetUid, typeKey, items);
         showToast(`${LICENSE_TYPES[typeKey].label}을(를) 저장했습니다.`, "success");

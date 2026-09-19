@@ -283,6 +283,9 @@ export default function App() {
             >
               🏆
             </a>
+            <a className="icon-btn" href="../license/" aria-label="License로 이동" title="C/A License">
+              🪪
+            </a>
             {firebaseConfigured && (
               <AccountButton
                 user={user}

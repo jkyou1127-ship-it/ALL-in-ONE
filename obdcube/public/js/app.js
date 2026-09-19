@@ -80,7 +80,6 @@ async function onNavigate(name) {
   if (name === "minifast") await renderMinifastView();
   if (name === "feedback") await renderFeedbackList();
   if (name === "mypage") await renderMyPage();
-  if (name === "license") await renderLicenseView();
   if (name === "awards") await renderAwardsPanel();
   if (name === "rankings") await renderRankingsList();
   if (name === "practice") initPracticeTab();
@@ -779,7 +778,6 @@ async function renderMyPage() {
 initApplyEventsCheckboxes();
 initOrganizerToolsForm();
 initAdminForm();
-initLicenseAdminForm();
 initAnnouncementToggle("btn-detail-announcement-toggle", "detail-announcement-detail");
 initAnnouncementToggle("btn-messenger-announcement-toggle", "messenger-announcement-detail");
 initAnnouncementToggle("btn-global-announcement-toggle", "global-announcement-detail");
@@ -797,11 +795,14 @@ auth.onAuthStateChanged(async (user) => {
 
   try {
     // 회원가입 직후에는 로그인 상태 변경 이벤트가 프로필 문서 생성보다 먼저 도착할 수 있어
-    // 프로필이 아직 없으면 잠시 재시도한다.
-    for (let attempt = 0; attempt < 5; attempt++) {
+    // 프로필이 아직 없으면 잠시 재시도한다. signUp()이 끝나기 전에(닉네임 예약 -> 프로필 문서 ->
+    // OBD ID 순서) 이 이벤트가 먼저 도착하는 경우가 실제로 있고, 특히 이 리스너가 새
+    // Firestore 연결(WebChannel 핸드셰이크)을 처음 여는 경우라 지연이 더 커질 수 있어
+    // 넉넉하게(최대 ~10초) 재시도한다.
+    for (let attempt = 0; attempt < 15; attempt++) {
       await loadProfile(user.uid);
       if (AppState.profile) break;
-      await new Promise(r => setTimeout(r, 400));
+      await new Promise(r => setTimeout(r, 700));
     }
     await refreshAdminStatus(user.uid);
   } catch (err) {

@@ -75,7 +75,7 @@
       <button class="nav-btn" data-nav="practice">심심풀이</button>
       <button class="nav-btn" data-nav="apply">대회 주최 신청</button>
       <button class="nav-btn" data-nav="mypage">마이페이지</button>
-      <button class="nav-btn" data-nav="license">라이선스</button>
+      <a class="nav-btn" href="../license/">라이선스</a>
       <button class="nav-btn" data-nav="awards">입상 내역</button>
       <button class="nav-btn" data-nav="rankings">OBD Live</button>
       <button class="nav-btn" data-nav="messenger">메신저</button>
@@ -422,17 +422,6 @@
       </div>
     </section>
 
-    <!-- 라이선스 (C License = 큐브, A License = ADOFAI) -->
-    <section id="view-license" class="view hidden">
-      <h2>라이선스</h2>
-      <p class="desc">
-        C License는 큐브, A License는 ADOFAI(얼불춤) 라이선스입니다. 실제 플레이는 이 앱이 아니라
-        지정된 오프라인 대회(큐브) · 실제 ADOFAI 게임(A License)에서 이루어지며, 이 페이지는 발급 여부와
-        지정 종목/레벨을 확인하는 용도입니다.
-      </p>
-      <div id="license-cards" class="license-cards"></div>
-    </section>
-
     <!-- 대회 상세 -->
     <section id="view-detail" class="view hidden">
       <button class="btn small" id="btn-back-to-list">← 목록으로</button>
@@ -699,18 +688,6 @@
         </form>
         <div id="admins-list" class="card-list"></div>
       </div>
-      <div class="panel">
-        <h3>라이선스 관리</h3>
-        <p class="desc">
-          C License(큐브) · A License(ADOFAI)를 발급/회수하고, 지정 종목(C)·지정 레벨(A)을 관리합니다.
-          실제 대회·게임 플레이는 앱 밖에서 이루어지며, 여기서는 자격만 관리합니다.
-        </p>
-        <form id="form-license-search" class="inline-form">
-          <input type="text" id="license-target-nickname" placeholder="닉네임으로 검색" required />
-          <button type="submit" class="btn">검색</button>
-        </form>
-        <div id="license-admin-target"></div>
-      </div>
     </section>
 
   </main>
@@ -782,7 +759,6 @@
 <script src="js/organizer.js"></script>
 <script src="js/practice.js"></script>
 <script src="js/admin.js"></script>
-<script src="js/license.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="js/app.js"></script>
 <script src="js/certificate.js"></script>
