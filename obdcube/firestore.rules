@@ -57,6 +57,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // 라이선스 등급 이름 목록 (관리자가 지정) - 사용자별 등급 저장 시 이 목록 중에서 고른다.
+    // 문서 구조: licenseGrades/c = { names: [...] }, licenseGrades/a = 동일
+    match /licenseGrades/{typeKey} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // 라이선스 신청 - 본인이 조건 중 하나를 골라 실제 달성한 기록/정확도를 적어 신청하면,
     // 관리자가 검토해 승인(licenses에 반영)/반려한다. competitions의 대회 주최 신청과 같은 패턴.
     match /licenseApplications/{appId} {

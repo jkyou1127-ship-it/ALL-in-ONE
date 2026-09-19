@@ -207,6 +207,57 @@ function initRequirementsAdminForm() {
   });
 }
 
+// ---- 관리자: 등급 이름 목록 관리 ----
+
+let gradeOptionsCache = { c: [], a: [] };
+
+function gradeOptionsTextareaValue(names) {
+  return (names || []).join("\n");
+}
+
+function parseGradeOptionLines(text) {
+  return String(text || "")
+    .split("\n")
+    .map(line => line.trim())
+    .filter(Boolean);
+}
+
+async function renderGradeOptionsAdmin() {
+  const [cNames, aNames] = await Promise.all([
+    fetchLicenseGradeOptions("c"),
+    fetchLicenseGradeOptions("a")
+  ]);
+  gradeOptionsCache = { c: cNames, a: aNames };
+  el("admin-grades-c").value = gradeOptionsTextareaValue(cNames);
+  el("admin-grades-a").value = gradeOptionsTextareaValue(aNames);
+}
+
+function initGradeOptionsAdminForm() {
+  el("form-grades-c").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      const names = parseGradeOptionLines(el("admin-grades-c").value);
+      await setLicenseGradeOptions("c", names);
+      gradeOptionsCache.c = names;
+      showToast("C License 등급 이름 목록을 저장했습니다.", "success");
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  });
+
+  el("form-grades-a").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      const names = parseGradeOptionLines(el("admin-grades-a").value);
+      await setLicenseGradeOptions("a", names);
+      gradeOptionsCache.a = names;
+      showToast("A License 등급 이름 목록을 저장했습니다.", "success");
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  });
+}
+
 // ---- 관리자: 신청 승인 대기 ----
 
 function pendingApplicationRowHtml(app) {
@@ -286,9 +337,17 @@ async function renderLicenseAdminTarget(user) {
   function gradeFormHtml(typeKey) {
     const data = typeKey === "c" ? license.cLicense : license.aLicense;
     if (!data) return "";
+    const options = gradeOptionsCache[typeKey] || [];
+    if (options.length === 0) {
+      return `<p class="license-item-list--empty">등급을 저장하려면 먼저 "등급 이름 관리"에서 ${escapeHtml(LICENSE_TYPES[typeKey].label)} 등급 이름을 등록하세요.</p>`;
+    }
+    const currentGrade = data.grade || "";
     return `
       <form class="inline-form license-grade-form" data-type="${typeKey}">
-        <input type="text" class="license-grade-input" placeholder="등급 (예: 1급, 초급/중급/고급)" value="${escapeHtml(data.grade || "")}" />
+        <select class="license-grade-input">
+          <option value="">등급 선택 안 함</option>
+          ${options.map(name => `<option value="${escapeHtml(name)}" ${name === currentGrade ? "selected" : ""}>${escapeHtml(name)}</option>`).join("")}
+        </select>
         <button type="submit" class="btn small">등급 저장</button>
       </form>
     `;
@@ -358,9 +417,15 @@ function initLicenseAdminSearchForm() {
 
 function initLicenseAdmin() {
   initRequirementsAdminForm();
+  initGradeOptionsAdminForm();
   initLicenseAdminSearchForm();
 }
 
 async function renderLicenseAdminView() {
-  await Promise.all([renderRequirementsAdmin(), renderPendingLicenseApplications(), renderReviewedLicenseApplications()]);
+  await Promise.all([
+    renderRequirementsAdmin(),
+    renderGradeOptionsAdmin(),
+    renderPendingLicenseApplications(),
+    renderReviewedLicenseApplications(),
+  ]);
 }

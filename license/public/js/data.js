@@ -108,7 +108,23 @@ async function revokeLicense(uid, typeKey) {
   await ref.set({ [type.field]: { ...existing, active: false } }, { merge: true });
 }
 
-// 관리자 전용: 라이선스 등급(예: 1급/2급, 초급/중급/고급 등 자유 텍스트) 입력/수정.
+// ---- 라이선스 등급 이름 목록 (관리자가 지정) ----
+// 등급을 자유 텍스트로 매번 새로 타이핑하는 대신, 관리자가 미리 이름 목록을 정해두면
+// 사용자별 등급 저장 시 그 목록에서 고르게 된다. 문서 구조: licenseGrades/{typeKey} = { names: [...] }
+
+async function fetchLicenseGradeOptions(typeKey) {
+  const snap = await db.collection("licenseGrades").doc(typeKey).get();
+  return snap.exists ? (snap.data().names || []) : [];
+}
+
+async function setLicenseGradeOptions(typeKey, names) {
+  await db.collection("licenseGrades").doc(typeKey).set({
+    names,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+// 관리자 전용: 라이선스 등급(관리자가 정한 목록 중 하나) 입력/수정.
 // 라이선스가 아직 없으면(미발급) 등급만 먼저 적을 수는 없고, 최소 한 번은 신청이 승인되어야 한다.
 async function setLicenseGrade(uid, typeKey, grade) {
   const type = LICENSE_TYPES[typeKey];

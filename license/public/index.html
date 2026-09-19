@@ -135,6 +135,21 @@
       </div>
 
       <div class="panel">
+        <h3>등급 이름 관리</h3>
+        <p class="desc">한 줄에 하나씩 등급 이름을 입력하세요. 사용자별 라이선스에 등급을 저장할 때 이 목록에서 고르게 됩니다.</p>
+        <form id="form-grades-c" class="inline-form">
+          <label style="width:100%">C License 등급 이름 (예: 1급, 2급, 3급)</label>
+          <textarea id="admin-grades-c" placeholder="1급"></textarea>
+          <button type="submit" class="btn small primary">C License 등급 이름 저장</button>
+        </form>
+        <form id="form-grades-a" class="inline-form" style="margin-top:14px;">
+          <label style="width:100%">A License 등급 이름 (예: 초급, 중급, 고급)</label>
+          <textarea id="admin-grades-a" placeholder="초급"></textarea>
+          <button type="submit" class="btn small primary">A License 등급 이름 저장</button>
+        </form>
+      </div>
+
+      <div class="panel">
         <h3>신청 승인 대기</h3>
         <div id="license-pending-list" class="card-list"></div>
       </div>
