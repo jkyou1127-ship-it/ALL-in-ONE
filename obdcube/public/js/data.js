@@ -752,3 +752,56 @@ async function leaveTttRoom(code) {
 
 // 라이선스(C License/A License)는 별도 앱(../../license)으로 분리되었습니다.
 // 관련 Firestore 헬퍼는 license/public/js/data.js 를 참고하세요.
+
+// ---- 다른 프로젝트에서 옮겨온 대회의 옛 uid 되찾기 ----
+// 마이그레이션으로 들어온 대회는 organizerUid/coOrganizerUids/staffUids/참가자 uid가 전부
+// 옛 프로젝트의 uid라서, 그 사람이 같은 이메일로 이 프로젝트에 새로 가입해도 자기 uid가
+// 아니라 대회를 운영할 수 없다. legacyUidByEmail(이메일별 옛 uid 매핑)에 등록된 이메일로
+// 실제 계정이 생기면, 관리자 로그인 시 이 함수가 그 사람이 관련된 모든 대회의 uid를
+// 옛 uid에서 새 uid로 옮겨줘서 다시 운영할 수 있게 만든다.
+async function reclaimLegacyCompetitions() {
+  const pendingSnap = await db.collection("legacyUidByEmail").where("claimed", "==", false).get();
+  if (pendingSnap.empty) return { claimed: 0 };
+
+  let claimedCount = 0;
+  for (const legacyDoc of pendingSnap.docs) {
+    const email = legacyDoc.id;
+    const { oldUid } = legacyDoc.data();
+
+    const userSnap = await db.collection("users").where("email", "==", email).limit(1).get();
+    if (userSnap.empty) continue; // 아직 이 이메일로 가입한 사람이 없음 - 다음에 다시 확인
+    const newUid = userSnap.docs[0].id;
+    const newNickname = userSnap.docs[0].data().nickname || "";
+    if (newUid === oldUid) continue;
+
+    const compsSnap = await db.collection("competitions").get();
+    for (const compDoc of compsSnap.docs) {
+      const comp = compDoc.data();
+      const compRef = compDoc.ref;
+      const patch = {};
+      if (comp.organizerUid === oldUid) {
+        patch.organizerUid = newUid;
+        patch.organizerNickname = newNickname;
+      }
+      if (Array.isArray(comp.coOrganizerUids) && comp.coOrganizerUids.includes(oldUid)) {
+        patch.coOrganizerUids = comp.coOrganizerUids.map(u => (u === oldUid ? newUid : u));
+      }
+      if (Array.isArray(comp.staffUids) && comp.staffUids.includes(oldUid)) {
+        patch.staffUids = comp.staffUids.map(u => (u === oldUid ? newUid : u));
+      }
+      if (Object.keys(patch).length > 0) await compRef.update(patch);
+
+      const eventsSnap = await compRef.collection("events").get();
+      for (const eventDoc of eventsSnap.docs) {
+        const participantsSnap = await eventDoc.ref.collection("participants").where("uid", "==", oldUid).get();
+        for (const pDoc of participantsSnap.docs) {
+          await pDoc.ref.update({ uid: newUid, nickname: newNickname });
+        }
+      }
+    }
+
+    await legacyDoc.ref.update({ claimed: true, claimedAt: firebase.firestore.FieldValue.serverTimestamp(), newUid });
+    claimedCount++;
+  }
+  return { claimed: claimedCount };
+}

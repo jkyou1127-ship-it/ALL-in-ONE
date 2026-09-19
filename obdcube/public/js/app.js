@@ -822,6 +822,15 @@ auth.onAuthStateChanged(async (user) => {
   showAppScreen();
   applyGlobalAnnouncementBanner().catch(() => {});
   applyOpenCompetitionsBanner().catch(() => {});
+  if (AppState.isAdmin) {
+    // 다른 프로젝트에서 옮겨온 대회를 원래 주최자/참가자가 같은 이메일로 다시 가입했을 때
+    // 자동으로 되찾아준다 (관리자 로그인마다 한 번씩 확인).
+    reclaimLegacyCompetitions()
+      .then(({ claimed }) => {
+        if (claimed > 0) showToast(`${claimed}명의 이전 대회 참여 기록을 새 계정으로 연결했습니다.`, "success");
+      })
+      .catch(() => {});
+  }
   await onNavigate("competitions");
 });
 

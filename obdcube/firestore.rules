@@ -64,6 +64,14 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // 다른 프로젝트에서 마이그레이션해온 대회의 옛 uid -> 이메일 매핑. 그 이메일로 다시 가입/로그인하면
+    // 관리자가 로그인할 때 자동으로 대회의 organizerUid/coOrganizerUids/staffUids/참가자 uid를
+    // 새 계정의 uid로 옮겨줘서 다시 대회를 운영할 수 있게 한다. 관리자만 읽고 쓴다.
+    // 문서 구조: legacyUidByEmail/{email} = { oldUid, oldNickname, claimed }
+    match /legacyUidByEmail/{email} {
+      allow read, write: if isAdmin();
+    }
+
     // 라이선스 신청 - 본인이 조건 중 하나를 골라 실제 달성한 기록/정확도를 적어 신청하면,
     // 관리자가 검토해 승인(licenses에 반영)/반려한다. competitions의 대회 주최 신청과 같은 패턴.
     match /licenseApplications/{appId} {

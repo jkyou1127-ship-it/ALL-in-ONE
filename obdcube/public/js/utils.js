@@ -106,6 +106,11 @@ function minifastMarkHtml(comp) {
 
 function isUserOrganizerOf(comp) {
   if (!AppState.user || !comp) return false;
+  // Firestore 규칙(isAdmin() || isCompOrganizer(...))과 동일하게, 관리자는 항상 주최자로 취급한다.
+  // 다른 프로젝트에서 옮겨온 대회처럼 organizerUid가 지금 로그인한 계정의 uid와 다를 때도
+  // 관리자는 화면에서 주최자 전용 기능(참가신청 마감/재개, 종목추가 마감/재개, 명찰 발급 등)을
+  // 계속 쓸 수 있어야 한다.
+  if (AppState.isAdmin) return true;
   if (comp.organizerUid === AppState.user.uid) return true;
   return Array.isArray(comp.coOrganizerUids) && comp.coOrganizerUids.includes(AppState.user.uid);
 }
