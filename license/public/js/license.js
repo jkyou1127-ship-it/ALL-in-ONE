@@ -33,6 +33,7 @@ function buildLicenseCardHtml(typeKey, licenseData) {
       <div class="license-card__body">
         <p class="license-card__no">${licenseData && licenseData.licenseNo ? escapeHtml(licenseData.licenseNo) : "-"}</p>
         <p class="desc">발급일: ${licenseData && licenseData.issuedAt ? formatDate(licenseData.issuedAt) : "-"}</p>
+        <p class="desc">등급: ${licenseData && licenseData.grade ? escapeHtml(licenseData.grade) : "-"}</p>
         <p class="license-card__items-label">${type.itemsLabel}</p>
         ${renderLicenseItemRows(type, items)}
       </div>
@@ -282,21 +283,49 @@ async function renderLicenseAdminTarget(user) {
   container.innerHTML = "<p class='desc'>불러오는 중...</p>";
   const license = await fetchMyLicense(user.uid);
 
+  function gradeFormHtml(typeKey) {
+    const data = typeKey === "c" ? license.cLicense : license.aLicense;
+    if (!data) return "";
+    return `
+      <form class="inline-form license-grade-form" data-type="${typeKey}">
+        <input type="text" class="license-grade-input" placeholder="등급 (예: 1급, 초급/중급/고급)" value="${escapeHtml(data.grade || "")}" />
+        <button type="submit" class="btn small">등급 저장</button>
+      </form>
+    `;
+  }
+
   container.innerHTML = `
     <div class="panel" style="margin-top:14px;">
       <h3>${escapeHtml(user.nickname)} <span class="desc">(${escapeHtml(user.obdId || "-")})</span></h3>
       <div class="license-cards license-cards--admin">
         <div>
           ${buildLicenseCardHtml("c", license.cLicense)}
+          ${gradeFormHtml("c")}
           ${license.cLicense && license.cLicense.active ? `<button type="button" class="btn small danger license-admin-revoke-btn" data-type="c">C License 회수</button>` : ""}
         </div>
         <div>
           ${buildLicenseCardHtml("a", license.aLicense)}
+          ${gradeFormHtml("a")}
           ${license.aLicense && license.aLicense.active ? `<button type="button" class="btn small danger license-admin-revoke-btn" data-type="a">A License 회수</button>` : ""}
         </div>
       </div>
     </div>
   `;
+
+  container.querySelectorAll(".license-grade-form").forEach(form => {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const typeKey = form.dataset.type;
+      const grade = form.querySelector(".license-grade-input").value.trim();
+      try {
+        await setLicenseGrade(user.uid, typeKey, grade);
+        showToast(`${LICENSE_TYPES[typeKey].label} 등급을 저장했습니다.`, "success");
+        await renderLicenseAdminTarget(user);
+      } catch (err) {
+        showToast(err.message, "error");
+      }
+    });
+  });
 
   container.querySelectorAll(".license-admin-revoke-btn").forEach(btn => {
     btn.addEventListener("click", async () => {

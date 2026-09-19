@@ -108,6 +108,17 @@ async function revokeLicense(uid, typeKey) {
   await ref.set({ [type.field]: { ...existing, active: false } }, { merge: true });
 }
 
+// 관리자 전용: 라이선스 등급(예: 1급/2급, 초급/중급/고급 등 자유 텍스트) 입력/수정.
+// 라이선스가 아직 없으면(미발급) 등급만 먼저 적을 수는 없고, 최소 한 번은 신청이 승인되어야 한다.
+async function setLicenseGrade(uid, typeKey, grade) {
+  const type = LICENSE_TYPES[typeKey];
+  const ref = db.collection("licenses").doc(uid);
+  const snap = await ref.get();
+  const existing = snap.exists ? snap.data()[type.field] : null;
+  if (!existing) throw new Error("먼저 라이선스가 발급(신청 승인)되어야 등급을 입력할 수 있습니다.");
+  await ref.set({ [type.field]: { ...existing, grade, updatedAt: firebase.firestore.FieldValue.serverTimestamp() } }, { merge: true });
+}
+
 // 관리자 전용: 승인된 항목을 직접 한 번 더 손볼 때(오타 수정 등) 쓰는 저수준 함수.
 // 정상적인 등록 경로는 신청 -> 승인(approveLicenseApplication)이다.
 async function upsertLicenseItem(uid, typeKey, item) {
