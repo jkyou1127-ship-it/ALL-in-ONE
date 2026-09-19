@@ -107,3 +107,109 @@ async function revokeLicense(uid, typeKey) {
   if (!existing) return;
   await ref.set({ [type.field]: { ...existing, active: false } }, { merge: true });
 }
+
+// 관리자 전용: 승인된 항목을 직접 한 번 더 손볼 때(오타 수정 등) 쓰는 저수준 함수.
+// 정상적인 등록 경로는 신청 -> 승인(approveLicenseApplication)이다.
+async function upsertLicenseItem(uid, typeKey, item) {
+  const type = LICENSE_TYPES[typeKey];
+  const ref = db.collection("licenses").doc(uid);
+  const snap = await ref.get();
+  const existing = snap.exists ? snap.data()[type.field] : null;
+  const items = (existing && existing[type.itemsField]) || [];
+  const idx = items.findIndex(i => i.name === item.name);
+  if (idx >= 0) items[idx] = item; else items.push(item);
+  const licenseNo = (existing && existing.licenseNo) || await generateLicenseNo(typeKey);
+  await ref.set({
+    [type.field]: {
+      active: true,
+      licenseNo,
+      issuedAt: (existing && existing.issuedAt) || firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      [type.itemsField]: items
+    }
+  }, { merge: true });
+}
+
+// ---- 라이선스 신청 조건 (관리자가 지정) ----
+// C: 종목별 기준 기록(이 기록을 달성해야 신청 가능), A: 레벨별 기준 정확도.
+// 문서 구조: licenseRequirements/{typeKey} = { items: [{name, value}] }
+
+async function fetchLicenseRequirements(typeKey) {
+  const snap = await db.collection("licenseRequirements").doc(typeKey).get();
+  return snap.exists ? (snap.data().items || []) : [];
+}
+
+async function setLicenseRequirements(typeKey, items) {
+  await db.collection("licenseRequirements").doc(typeKey).set({
+    items,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+// ---- 라이선스 신청 (신청 -> 관리자 승인 -> licenses에 반영) ----
+// 문서 구조: licenseApplications/{appId} = {
+//   applicantUid, applicantNickname, typeKey: 'c'|'a', itemName, claimedValue,
+//   status: 'pending'|'approved'|'rejected', createdAt, reviewedAt, reviewedByNickname, rejectReason
+// }
+
+async function submitLicenseApplication({ typeKey, itemName, claimedValue }) {
+  return db.collection("licenseApplications").add({
+    applicantUid: AppState.user.uid,
+    applicantNickname: AppState.profile.nickname,
+    typeKey,
+    itemName,
+    claimedValue,
+    status: "pending",
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+async function fetchMyLicenseApplications() {
+  const snap = await db.collection("licenseApplications")
+    .where("applicantUid", "==", AppState.user.uid)
+    .get();
+  const list = [];
+  snap.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+  list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+  return list;
+}
+
+async function cancelLicenseApplication(appId) {
+  await db.collection("licenseApplications").doc(appId).update({ status: "cancelled" });
+}
+
+async function fetchPendingLicenseApplications() {
+  const snap = await db.collection("licenseApplications").where("status", "==", "pending").get();
+  const list = [];
+  snap.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+  list.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+  return list;
+}
+
+async function fetchReviewedLicenseApplications() {
+  const snap = await db.collection("licenseApplications").where("status", "in", ["approved", "rejected"]).get();
+  const list = [];
+  snap.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+  list.sort((a, b) => (b.reviewedAt?.seconds || 0) - (a.reviewedAt?.seconds || 0));
+  return list;
+}
+
+// 승인: 신청 상태를 approved로 바꾸고, 신청자의 licenses 문서에 해당 항목(이름+신청값)을
+// 반영한다(기존에 같은 이름 항목이 있으면 값을 갱신). 최초 승인이면 라이선스 번호를 새로 발급한다.
+async function approveLicenseApplication(app) {
+  await upsertLicenseItem(app.applicantUid, app.typeKey, { name: app.itemName, value: app.claimedValue });
+  await db.collection("licenseApplications").doc(app.id).update({
+    status: "approved",
+    reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    reviewedByNickname: AppState.profile.nickname
+  });
+}
+
+async function rejectLicenseApplication(app, reason) {
+  await db.collection("licenseApplications").doc(app.id).update({
+    status: "rejected",
+    reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    reviewedByNickname: AppState.profile.nickname,
+    rejectReason: reason || ""
+  });
+}

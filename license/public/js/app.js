@@ -59,7 +59,8 @@ el("btn-logout").addEventListener("click", async () => {
   await logOut();
 });
 
-initLicenseAdminForm();
+initLicenseApplyForm();
+initLicenseAdmin();
 
 auth.onAuthStateChanged(async (user) => {
   AppState.user = user;
@@ -95,5 +96,10 @@ auth.onAuthStateChanged(async (user) => {
   el("user-nickname").textContent = AppState.profile.nickname;
   el("view-license-admin").classList.toggle("hidden", !AppState.isAdmin);
   showAppScreen();
-  await renderMyLicenseView();
+  await Promise.all([
+    renderMyLicenseView(),
+    renderLicenseRequirements(),
+    renderMyLicenseApplications(),
+  ]);
+  if (AppState.isAdmin) await renderLicenseAdminView();
 });

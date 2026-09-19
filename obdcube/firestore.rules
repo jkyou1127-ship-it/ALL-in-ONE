@@ -40,12 +40,37 @@ service cloud.firestore {
       }
     }
 
-    // 라이선스 (C 라이선스 = 큐브, A 라이선스 = ADOFAI) - 본인은 열람만, 발급/수정/회수는 관리자만.
-    // 문서 구조: { cLicense: {active, licenseNo, issuedAt, designatedEvents:[...]},
-    //             aLicense: {active, licenseNo, issuedAt, designatedLevels:[...]} }
+    // 라이선스 (C 라이선스 = 큐브, A 라이선스 = ADOFAI) - 본인은 열람만, 실제 등록(발급/수정/회수)은
+    // 관리자가 신청 승인을 통해서만 한다 (아래 licenseApplications 참고).
+    // 문서 구조: { cLicense: {active, licenseNo, issuedAt, events:[{name,value}]},
+    //             aLicense: {active, licenseNo, issuedAt, levels:[{name,value}]} }
     match /licenses/{uid} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
       allow write: if isAdmin();
+    }
+
+    // 라이선스 신청 조건 (관리자가 지정) - C: 종목별 기준 기록, A: 레벨별 기준 정확도.
+    // 누구나 열람 가능(신청 전에 조건을 봐야 함), 관리자만 수정 가능.
+    // 문서 구조: licenseRequirements/c = { items: [{name, value}] }, licenseRequirements/a = 동일
+    match /licenseRequirements/{typeKey} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // 라이선스 신청 - 본인이 조건 중 하나를 골라 실제 달성한 기록/정확도를 적어 신청하면,
+    // 관리자가 검토해 승인(licenses에 반영)/반려한다. competitions의 대회 주최 신청과 같은 패턴.
+    match /licenseApplications/{appId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() &&
+                        request.resource.data.applicantUid == request.auth.uid &&
+                        request.resource.data.status == 'pending';
+      allow update: if isSignedIn() && (
+                        isAdmin() ||
+                        (resource.data.applicantUid == request.auth.uid &&
+                         resource.data.status == 'pending' &&
+                         request.resource.data.status == 'cancelled')
+                      );
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.applicantUid == request.auth.uid);
     }
 
     // 닉네임 중복 확인용 색인 문서 (nicknames/{nickname} = { uid })

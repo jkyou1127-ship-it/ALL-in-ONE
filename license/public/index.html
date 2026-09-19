@@ -89,15 +89,63 @@
         이 페이지는 발급 여부와 기록/정확도를 확인하는 용도입니다.
       </p>
       <div id="license-cards" class="license-cards"></div>
+
+      <div class="panel">
+        <h3>신청 조건</h3>
+        <p class="desc">관리자가 정한 조건을 실제로 달성했을 때만 아래에서 신청할 수 있습니다.</p>
+        <div id="license-requirements"></div>
+      </div>
+
+      <div class="panel">
+        <h3>신청하기</h3>
+        <form id="form-license-apply" class="plain-form">
+          <label>라이선스 종류</label>
+          <select id="apply-type">
+            <option value="c">C License (큐브)</option>
+            <option value="a">A License (ADOFAI)</option>
+          </select>
+          <label>종목/레벨</label>
+          <select id="apply-item-name"></select>
+          <label id="apply-value-label">내 시간</label>
+          <input type="text" id="apply-value" placeholder="실제로 달성한 기록/정확도" required />
+          <button type="submit" class="btn primary">신청</button>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h3>내 신청 현황</h3>
+        <div id="my-license-applications" class="card-list"></div>
+      </div>
     </section>
 
     <section id="view-license-admin" class="view hidden">
       <div class="panel">
-        <h3>라이선스 관리 (관리자)</h3>
-        <p class="desc">
-          닉네임으로 사용자를 찾아 C License(큐브 종목별 기록) · A License(ADOFAI 레벨별 정확도)를
-          발급/수정/회수합니다.
-        </p>
+        <h3>라이선스 조건 관리</h3>
+        <p class="desc">한 줄에 하나씩 "종목/레벨 | 기준값" 형식으로 입력하세요.</p>
+        <form id="form-requirements-c" class="inline-form">
+          <label style="width:100%">C License (예: 3x3x3 큐브 | 15.00)</label>
+          <textarea id="admin-requirements-c" placeholder="3x3x3 큐브 | 15.00"></textarea>
+          <button type="submit" class="btn small primary">C License 조건 저장</button>
+        </form>
+        <form id="form-requirements-a" class="inline-form" style="margin-top:14px;">
+          <label style="width:100%">A License (예: 7.5 Reflection | 95.00%)</label>
+          <textarea id="admin-requirements-a" placeholder="7.5 Reflection | 95.00%"></textarea>
+          <button type="submit" class="btn small primary">A License 조건 저장</button>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h3>신청 승인 대기</h3>
+        <div id="license-pending-list" class="card-list"></div>
+      </div>
+
+      <div class="panel">
+        <h3>처리된 신청 내역</h3>
+        <div id="license-reviewed-list" class="card-list"></div>
+      </div>
+
+      <div class="panel">
+        <h3>사용자별 라이선스 조회 / 회수</h3>
         <form id="form-license-search" class="inline-form">
           <input type="text" id="license-target-nickname" placeholder="닉네임으로 검색" required />
           <button type="submit" class="btn">검색</button>
