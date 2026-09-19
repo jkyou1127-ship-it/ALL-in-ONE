@@ -55,6 +55,7 @@ button { cursor: pointer; font-family: inherit; }
 .btn.primary { background: var(--primary); border-color: var(--primary); font-weight: 600; }
 .btn.primary:hover { background: var(--primary-dark); }
 .btn.small { padding: 6px 10px; font-size: 12px; }
+a.btn { text-decoration: none; display: inline-block; }
 .btn.danger { background: var(--danger); border-color: var(--danger); }
 .btn.success { background: var(--success); border-color: var(--success); }
 

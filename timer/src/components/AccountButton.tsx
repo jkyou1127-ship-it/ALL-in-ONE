@@ -54,7 +54,7 @@ export function AccountButton({
       </button>
       {open && (
         <div className="account-picker__menu">
-          <p className="account-picker__email">{user.email}</p>
+          <p className="account-picker__email">{user.displayName || user.email}</p>
           <button
             type="button"
             className="account-picker__logout"

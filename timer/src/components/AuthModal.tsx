@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { authErrorMessage, signIn, signUp } from '../lib/auth';
+import { authErrorMessage, signIn } from '../lib/auth';
 import { recordPrivacyConsent } from '../lib/userProfile';
+import { signUpWithNickname } from '../lib/profile';
 import { PrivacyPolicyModal } from './PrivacyPolicyModal';
 
 export function AuthModal({ onClose }: { onClose: () => void }) {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [nickname, setNickname] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [agreed, setAgreed] = useState(false);
@@ -22,8 +24,10 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
     setBusy(true);
     try {
       if (mode === 'signup') {
-        const cred = await signUp(email, password);
-        await recordPrivacyConsent(cred.user.uid);
+        // OBD Cube 앱과 같은 계정 체계(닉네임·OBD ID)를 쓰기 때문에, 여기서 만든
+        // 계정도 그쪽에서 그대로 로그인/식별된다.
+        const user = await signUpWithNickname(nickname, email, password);
+        await recordPrivacyConsent(user.uid);
       } else {
         await signIn(email, password);
       }
@@ -56,6 +60,18 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <form onSubmit={handleSubmit} className="auth-modal__form">
+          {mode === 'signup' && (
+            <input
+              type="text"
+              required
+              minLength={2}
+              maxLength={16}
+              placeholder="닉네임 (2~16자, OBD Cube와 공용)"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              autoComplete="nickname"
+            />
+          )}
           <input
             type="email"
             required

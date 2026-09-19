@@ -275,6 +275,14 @@ export default function App() {
           </div>
           <EventSelect value={settings.currentEvent} onChange={changeEvent} />
           <div className="app-header__actions">
+            <a
+              className="icon-btn"
+              href="../obdcube/"
+              aria-label="OBD Cube 대회 플랫폼으로 이동"
+              title="OBD Cube 대회 플랫폼"
+            >
+              🏆
+            </a>
             {firebaseConfigured && (
               <AccountButton
                 user={user}

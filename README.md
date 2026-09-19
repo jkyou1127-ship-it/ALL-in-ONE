@@ -17,6 +17,11 @@
 같은 프로젝트 안에 `users/{uid}/solves/{id}` 서브컬렉션으로 저장되어, 계정을 삭제하면 두 앱의 데이터가
 함께 정리됩니다.
 
+회원가입도 완전히 같은 스키마를 씁니다 - `timer`에서 가입해도 `obdcube`와 똑같이 **닉네임**을 입력받아
+`users/{uid}`(nickname/email/obdId), `nicknames/{nickname}` 문서를 만들고 **OBD ID**까지 발급하므로,
+어느 앱에서 가입하든 두 앱에서 같은 닉네임·OBD ID로 보입니다. 각 앱 헤더에는 다른 앱으로 바로 이동하는
+링크도 있습니다 (`timer` 상단의 🏆, `obdcube` 상단의 🧊 타이머).
+
 ## C License / A License
 
 `obdcube` 앱의 "라이선스" 탭·관리자 페이지에서 관리합니다.

@@ -57,6 +57,7 @@ export function authErrorMessage(err: unknown): string {
     case 'auth/too-many-requests':
       return '시도가 너무 많아요. 잠시 후 다시 시도해주세요.';
     default:
-      return '문제가 발생했어요. 잠시 후 다시 시도해주세요.';
+      // 닉네임 검증/중복 같은 우리 쪽 Error는 code가 없으니 메시지를 그대로 보여준다.
+      return (err as { message?: string })?.message || '문제가 발생했어요. 잠시 후 다시 시도해주세요.';
   }
 }
