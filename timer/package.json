@@ -1,0 +1,75 @@
+{
+  "name": "cube_app",
+  "private": true,
+  "version": "3.5.0-beta.1",
+  "description": "큐브 연습 타이머 - 스크램블, 기록/통계, 심심풀이 미니게임",
+  "author": "cube_app",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "icon": "node scripts/make-cube-icon.mjs && node scripts/generate-icon.mjs",
+    "vendor:cubing": "node scripts/vendor-cubing.mjs",
+    "postinstall": "node scripts/vendor-cubing.mjs",
+    "electron:dev": "concurrently -k -n VITE,ELECTRON \"npm:dev\" \"wait-on tcp:5173 && electron .\"",
+    "electron:build": "npm run build && electron-builder --win",
+    "electron:build:dir": "npm run build && electron-builder --win --dir"
+  },
+  "dependencies": {
+    "@types/web-bluetooth": "^0.0.21",
+    "cubing": "^0.63.3",
+    "firebase": "^12.17.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.4",
+    "concurrently": "^10.0.4",
+    "electron": "^43.3.0",
+    "electron-builder": "^26.15.3",
+    "oxlint": "^1.75.0",
+    "png-to-ico": "^3.0.2",
+    "sharp": "^0.35.3",
+    "typescript": "~6.0.2",
+    "vite": "^8.2.0",
+    "wait-on": "^9.1.0"
+  },
+  "build": {
+    "appId": "com.cubeapp.practice",
+    "productName": "큐브 연습",
+    "copyright": "Copyright © 2026",
+    "publish": null,
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "Release Build 1.0.${ext}"
+    }
+  }
+}

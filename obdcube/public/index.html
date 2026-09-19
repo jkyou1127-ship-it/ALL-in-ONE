@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OBD Cube - 온라인 큐브 대회</title>
+<link rel="icon" type="image/svg+xml" href="images/logo-mark.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Fredoka:wght@600;700&family=Outfit:wght@600;700&display=swap" />
+<link rel="stylesheet" href="css/style.css" />
+<script>
+  (function () {
+    try {
+      if (localStorage.getItem("obdcube-theme") === "light") {
+        document.documentElement.setAttribute("data-theme", "light");
+      }
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body>
+
+<button id="theme-toggle" class="theme-toggle" type="button" title="테마 변경" aria-label="테마 변경">🌙</button>
+
+<div id="toast" class="toast hidden"></div>
+
+<!-- 로그인 / 회원가입 -->
+<div id="view-auth" class="auth-wrap hidden">
+  <div class="auth-card">
+    <h1 class="brand">
+      <img src="images/logo-mark.svg" alt="" width="40" height="40" />
+      <span class="brand-word"><span class="brand-word-obd">OBD</span><span class="brand-word-cube">Cube</span></span>
+    </h1>
+    <p class="sub">온라인 큐브 대회 플랫폼</p>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="login">로그인</button>
+      <button class="tab-btn" data-tab="signup">회원가입</button>
+    </div>
+
+    <form id="form-login" class="auth-form">
+      <label>이메일</label>
+      <input type="email" id="login-email" required autocomplete="email" />
+      <label>비밀번호</label>
+      <input type="password" id="login-password" required autocomplete="current-password" />
+      <button type="submit" class="btn primary">로그인</button>
+    </form>
+
+    <form id="form-signup" class="auth-form hidden">
+      <label>닉네임</label>
+      <input type="text" id="signup-nickname" required maxlength="16" placeholder="2~16자" />
+      <label>이메일</label>
+      <input type="email" id="signup-email" required autocomplete="email" />
+      <label>비밀번호</label>
+      <input type="password" id="signup-password" required minlength="6" autocomplete="new-password" placeholder="6자 이상" />
+      <button type="submit" class="btn primary">회원가입</button>
+    </form>
+
+    <p class="hint"><a href="rules.html" target="_blank" rel="noopener">대회 규정</a> · <a href="privacy.html" target="_blank" rel="noopener">개인정보처리방침</a></p>
+  </div>
+</div>
+
+<!-- 메인 앱 -->
+<div id="view-app" class="app-wrap hidden">
+  <header class="topbar">
+    <div class="brand-mini">
+      <img src="images/logo-mark.svg" alt="" width="24" height="24" />
+      <span class="brand-word"><span class="brand-word-obd">OBD</span><span class="brand-word-cube">Cube</span></span>
+    </div>
+    <nav class="nav">
+      <button class="nav-btn" data-nav="competitions">대회 목록</button>
+      <button class="nav-btn" data-nav="joinapply">참가 신청</button>
+      <button class="nav-btn" data-nav="minifast">MINI/FAST</button>
+      <button class="nav-btn" data-nav="feedback">피드백</button>
+      <button class="nav-btn" data-nav="practice">심심풀이</button>
+      <button class="nav-btn" data-nav="apply">대회 주최 신청</button>
+      <button class="nav-btn" data-nav="mypage">마이페이지</button>
+      <button class="nav-btn" data-nav="license">라이선스</button>
+      <button class="nav-btn" data-nav="awards">입상 내역</button>
+      <button class="nav-btn" data-nav="rankings">OBD Live</button>
+      <button class="nav-btn" data-nav="messenger">메신저</button>
+      <button class="nav-btn hidden" id="nav-admin" data-nav="admin">관리자</button>
+    </nav>
+    <div class="user-box">
+      <span id="user-nickname">-</span>
+      <button id="theme-toggle-app" class="btn small" type="button" title="테마 변경" aria-label="테마 변경">🌙</button>
+      <button id="btn-logout" class="btn small">로그아웃</button>
+    </div>
+  </header>
+
+  <div id="global-announcement-banner" class="announcement-banner hidden">
+    <button type="button" class="announcement-toggle" id="btn-global-announcement-toggle">
+      <strong>📢 공지</strong><span id="global-announcement-hint" class="announcement-hint">(누르면 펼치기)</span>
+    </button>
+    <div id="global-announcement-detail" class="announcement-detail hidden">
+      <span id="global-announcement-text" class="announcement-text"></span>
+    </div>
+  </div>
+  <div id="global-announcement-banner-2" class="announcement-banner hidden">
+    <button type="button" class="announcement-toggle" id="btn-global-announcement-toggle-2">
+      <strong>📢 공지 2</strong><span id="global-announcement-hint-2" class="announcement-hint">(누르면 펼치기)</span>
+    </button>
+    <div id="global-announcement-detail-2" class="announcement-detail hidden">
+      <span id="global-announcement-text-2" class="announcement-text"></span>
+    </div>
+  </div>
+  <div id="open-competitions-banner" class="announcement-banner hidden">
+    <button type="button" class="announcement-toggle" id="btn-open-competitions-toggle">
+      <strong>📢 참가 신청 중인 대회</strong><span id="open-competitions-hint" class="announcement-hint">(누르면 펼치기)</span>
+    </button>
+    <div id="open-competitions-detail" class="announcement-detail hidden">
+      <span id="open-competitions-text" class="announcement-text"></span>
+    </div>
+  </div>
+
+  <main class="content">
+
+    <!-- 대회 목록 -->
+    <section id="view-competitions" class="view">
+      <h2>승인된 대회</h2>
+      <div class="tab-row">
+        <button type="button" class="tab-pill" id="competitions-filter-closed">신청마감</button>
+        <button type="button" class="tab-pill active" id="competitions-filter-open">참가신청중</button>
+        <button type="button" class="tab-pill" id="competitions-filter-ongoing">진행중</button>
+        <button type="button" class="tab-pill" id="competitions-filter-upcoming">개최예정</button>
+        <button type="button" class="tab-pill" id="competitions-filter-ended">종료된 대회</button>
+      </div>
+      <div id="competitions-list" class="card-list"></div>
+    </section>
+
+    <!-- 심심풀이 (대회와 무관한 미니게임) -->
+    <section id="view-practice" class="view hidden">
+      <h2>심심풀이</h2>
+      <div class="tabs">
+        <button class="tab-btn game-tab-btn active" data-game="2048">2048</button>
+        <button class="tab-btn game-tab-btn" data-game="tictactoe">틱택토</button>
+        <button class="tab-btn game-tab-btn" data-game="minesweeper">지뢰찾기</button>
+      </div>
+
+      <!-- 2048 -->
+      <div id="game-2048" class="game-panel">
+        <div class="panel">
+          <div class="inline-form">
+            <span>점수: <strong id="g2048-score">0</strong></span>
+            <span>최고점수: <strong id="g2048-best">0</strong></span>
+            <button type="button" class="btn small" id="btn-2048-restart">새 게임</button>
+          </div>
+          <div id="g2048-board" class="g2048-board"></div>
+          <p class="desc">방향키(← ↑ → ↓)로 밀 수 있고, 아래 버튼으로도 조작할 수 있습니다.</p>
+          <div class="g2048-controls">
+            <button type="button" class="btn small" data-dir="up">↑</button>
+            <div>
+              <button type="button" class="btn small" data-dir="left">←</button>
+              <button type="button" class="btn small" data-dir="down">↓</button>
+              <button type="button" class="btn small" data-dir="right">→</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 틱택토 -->
+      <div id="game-tictactoe" class="game-panel hidden">
+        <div class="panel">
+          <div class="tabs">
+            <button class="tab-btn ttt-mode-btn active" data-ttt-mode="local">같은 화면 2인</button>
+            <button class="tab-btn ttt-mode-btn" data-ttt-mode="cpu">컴퓨터와 대전</button>
+            <button class="tab-btn ttt-mode-btn" data-ttt-mode="online">온라인 대전</button>
+          </div>
+
+          <div id="ttt-offline-panel">
+            <p id="ttt-status" class="desc">X 차례입니다.</p>
+            <div id="ttt-board" class="ttt-board"></div>
+            <p id="ttt-stats" class="desc">X 승: 0 · O 승: 0 · 무승부: 0</p>
+            <button type="button" class="btn small" id="btn-ttt-restart">새 게임</button>
+            <button type="button" class="btn small" id="btn-ttt-reset-stats">전적 초기화</button>
+          </div>
+
+          <div id="ttt-online-panel" class="hidden">
+            <div id="ttt-online-lobby">
+              <div class="inline-form">
+                <button type="button" class="btn small" id="btn-ttt-create-room">방 만들기</button>
+                <input type="text" id="ttt-join-code" placeholder="방 코드 입력" maxlength="6" />
+                <button type="button" class="btn small" id="btn-ttt-join-room">참가하기</button>
+              </div>
+              <p class="desc">방을 만들면 나오는 코드를 상대방에게 알려주고, 상대방은 그 코드로 참가하면 됩니다.</p>
+            </div>
+            <div id="ttt-online-room" class="hidden">
+              <p class="desc">방 코드: <strong id="ttt-room-code"></strong> · 나: <strong id="ttt-my-mark"></strong></p>
+              <p id="ttt-online-status" class="desc">-</p>
+              <div id="ttt-online-board" class="ttt-board"></div>
+              <button type="button" class="btn small" id="btn-ttt-refresh-room">새로고침</button>
+              <button type="button" class="btn small danger" id="btn-ttt-leave-room">나가기</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 지뢰찾기 -->
+      <div id="game-minesweeper" class="game-panel hidden">
+        <div class="panel">
+          <div class="inline-form">
+            <select id="mine-difficulty">
+              <option value="easy">초급 (9x9, 지뢰 10)</option>
+              <option value="medium">중급 (16x16, 지뢰 40)</option>
+              <option value="hard">고급 (16x30, 지뢰 99)</option>
+            </select>
+            <span>남은 지뢰: <strong id="mine-remaining">10</strong></span>
+            <span>시간: <strong id="mine-timer">0</strong>초</span>
+            <button type="button" class="btn small" id="btn-mine-restart">새 게임</button>
+          </div>
+          <p class="desc">좌클릭: 칸 열기 · 우클릭: 깃발 표시</p>
+          <div id="mine-board" class="mine-board"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 대회 주최 신청 -->
+    <section id="view-apply" class="view hidden">
+      <h2>대회 주최 신청</h2>
+      <p class="desc">신청 후 관리자의 승인을 받으면 대회를 주최할 수 있습니다.</p>
+      <form id="form-apply" class="plain-form">
+        <label>대회명</label>
+        <input type="text" id="apply-title" required maxlength="40" />
+        <label>대회 유형</label>
+        <select id="apply-type">
+          <option value="일반">일반</option>
+          <option value="MINI">MINI</option>
+          <option value="FAST">FAST</option>
+        </select>
+        <label>대회 소개</label>
+        <textarea id="apply-desc" rows="4" maxlength="500"></textarea>
+        <label>희망 개최일 (시작일)</label>
+        <input type="date" id="apply-date" required />
+        <div id="apply-end-date-wrap">
+          <label>종료일 (2일 이상 진행되는 대회인 경우, 선택)</label>
+          <input type="date" id="apply-end-date" />
+        </div>
+        <p id="apply-minifast-notice" class="desc hidden">MINI/FAST 대회는 하루만 개최할 수 있습니다.</p>
+        <label>종목 선택 (최소 1개)</label>
+        <div id="apply-events-checkboxes" class="checkbox-grid"></div>
+        <label>기타 종목 (쉼표로 구분, 선택)</label>
+        <input type="text" id="apply-events-custom" />
+        <button type="submit" class="btn primary">신청하기</button>
+      </form>
+    </section>
+
+    <!-- 참가 신청 (대회에 개인/선수로 참가 신청) -->
+    <section id="view-joinapply" class="view hidden">
+      <div id="joinapply-list-view">
+        <h2>참가 신청</h2>
+        <p class="desc">참가 신청을 받고 있는 대회 목록입니다.</p>
+        <div id="joinapply-comp-list" class="card-list"></div>
+      </div>
+      <div id="joinapply-form-view" class="hidden">
+        <button class="btn small" id="btn-joinapply-back">← 목록으로</button>
+        <h2 id="joinapply-title">-</h2>
+        <p class="desc">참가할 종목은 체크하고, 취소할 종목은 체크를 해제한 뒤 저장하세요.</p>
+        <p id="joinapply-not-started-msg" class="desc hidden">아직 참가 신청을 받지 않는 대회입니다.</p>
+        <p id="joinapply-closed-msg" class="desc hidden">참가 신청이 마감되었습니다.</p>
+        <form id="form-joinapply" class="inline-form">
+          <button type="button" class="btn small" id="btn-joinapply-select-all">전 종목 선택</button>
+          <div id="joinapply-events-checkboxes" class="checkbox-grid"></div>
+          <button type="submit" class="btn primary">저장</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- MINI/FAST 대회 (일반 대회 목록·참가 신청과 완전히 분리된 전용 탭) -->
+    <section id="view-minifast" class="view hidden">
+      <h2>MINI / FAST</h2>
+      <div class="tab-row">
+        <button type="button" class="tab-pill active" id="minifast-tab-list">대회 목록</button>
+        <button type="button" class="tab-pill" id="minifast-tab-apply">참가 신청</button>
+        <button type="button" class="tab-pill" id="minifast-tab-awards">입상 내역</button>
+        <button type="button" class="tab-pill" id="minifast-tab-rankings">OBD Live</button>
+      </div>
+
+      <div id="minifast-list-panel">
+        <div class="tab-row">
+          <button type="button" class="tab-pill" id="minifast-filter-closed">신청마감</button>
+          <button type="button" class="tab-pill active" id="minifast-filter-open">참가신청중</button>
+          <button type="button" class="tab-pill" id="minifast-filter-ongoing">진행중</button>
+          <button type="button" class="tab-pill" id="minifast-filter-upcoming">개최예정</button>
+          <button type="button" class="tab-pill" id="minifast-filter-ended">종료된 대회</button>
+        </div>
+        <div id="minifast-comp-list" class="card-list"></div>
+      </div>
+
+      <div id="minifast-apply-panel" class="hidden">
+        <div id="minifast-apply-list-view">
+          <p class="desc">참가 신청을 받고 있는 MINI/FAST 대회 목록입니다.</p>
+          <div id="minifast-apply-comp-list" class="card-list"></div>
+        </div>
+        <div id="minifast-apply-form-view" class="hidden">
+          <button class="btn small" id="btn-minifast-apply-back">← 목록으로</button>
+          <h2 id="minifast-apply-title">-</h2>
+          <p class="desc">참가할 종목은 체크하고, 취소할 종목은 체크를 해제한 뒤 저장하세요.</p>
+          <p id="minifast-apply-not-started-msg" class="desc hidden">아직 참가 신청을 받지 않는 대회입니다.</p>
+          <p id="minifast-apply-closed-msg" class="desc hidden">참가 신청이 마감되었습니다.</p>
+          <form id="form-minifast-apply" class="inline-form">
+            <button type="button" class="btn small" id="btn-minifast-apply-select-all">전 종목 선택</button>
+            <div id="minifast-apply-events-checkboxes" class="checkbox-grid"></div>
+            <button type="submit" class="btn primary">저장</button>
+          </form>
+        </div>
+      </div>
+
+      <div id="minifast-awards-panel" class="hidden">
+        <p class="desc">종료된 MINI/FAST 대회에서 3등 이내 입상자만 표시됩니다.</p>
+        <div class="tab-row">
+          <button type="button" class="tab-pill active" id="minifast-awards-mode-all">전체</button>
+          <button type="button" class="tab-pill" id="minifast-awards-mode-event">종목별</button>
+          <button type="button" class="tab-pill" id="minifast-awards-mode-comp">대회별</button>
+        </div>
+        <div id="minifast-awards-event-tabs" class="tab-row"></div>
+        <div id="minifast-awards-sub-tabs" class="tab-row"></div>
+        <div id="minifast-awards-list" class="card-list"></div>
+      </div>
+
+      <div id="minifast-rankings-panel" class="hidden">
+        <div id="minifast-rankings-list-view">
+          <p class="desc">OBD Live로 확인할 MINI/FAST 대회를 선택하세요. (아직 시작하지 않은 대회는 표시되지 않습니다)</p>
+          <div class="tab-row">
+            <button type="button" class="tab-pill active" id="minifast-rankings-filter-active">진행 중인 대회</button>
+            <button type="button" class="tab-pill" id="minifast-rankings-filter-ended">종료된 대회</button>
+          </div>
+          <div id="minifast-rankings-comp-list" class="card-list"></div>
+        </div>
+        <div id="minifast-rankings-detail-view" class="hidden">
+          <button class="btn small" id="btn-minifast-rankings-back">← 목록으로</button>
+          <h2 id="minifast-rankings-detail-title">-</h2>
+          <div id="minifast-rankings-event-tabs" class="tab-row"></div>
+          <div id="minifast-rankings-round-tabs" class="tab-row"></div>
+          <div id="minifast-rankings-table-container"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 피드백 (참가자가 대회 진행에 남기는 의견 - 주최자/공동 주최자만 열람 가능) -->
+    <section id="view-feedback" class="view hidden">
+      <div id="feedback-list-view">
+        <h2>피드백</h2>
+        <p class="desc">참가한 대회에 피드백을 남기거나, 주최 중인 대회에 달린 피드백을 확인할 수 있습니다.</p>
+
+        <div class="panel">
+          <h3>앱 피드백</h3>
+          <p class="desc">OBD Cube 앱 자체에 대한 의견을 남겨주세요.</p>
+          <form id="form-app-feedback-submit" class="inline-form">
+            <textarea id="app-feedback-text" rows="3" maxlength="1000" placeholder="앱에 대한 의견을 남겨주세요." required></textarea>
+            <button type="submit" class="btn small primary">제출</button>
+          </form>
+          <div id="app-feedback-view-panel" class="hidden">
+            <h4>받은 앱 피드백</h4>
+            <div id="app-feedback-list" class="card-list"></div>
+          </div>
+        </div>
+
+        <div id="feedback-comp-list" class="card-list"></div>
+      </div>
+      <div id="feedback-detail-view" class="hidden">
+        <button class="btn small" id="btn-feedback-back">← 목록으로</button>
+        <h2 id="feedback-detail-title">-</h2>
+
+        <div id="feedback-submit-panel" class="panel hidden">
+          <h3>피드백 남기기</h3>
+          <p class="desc">이 피드백은 주최자·공동 주최자만 볼 수 있습니다.</p>
+          <form id="form-feedback-submit" class="inline-form">
+            <textarea id="feedback-text" rows="4" maxlength="1000" placeholder="대회 진행에 대한 의견을 남겨주세요." required></textarea>
+            <button type="submit" class="btn small primary">제출</button>
+          </form>
+        </div>
+
+        <div id="feedback-view-panel" class="panel hidden">
+          <h3>받은 피드백</h3>
+          <div id="feedback-list" class="card-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 마이페이지 -->
+    <section id="view-mypage" class="view hidden">
+      <h2>마이페이지</h2>
+      <div class="panel">
+        <h3>OBD ID</h3>
+        <p class="desc">WCA ID처럼 가입 시 한 번 발급되는 고유 번호이며, 이후 바뀌지 않습니다.</p>
+        <p><strong id="mypage-obdid">-</strong></p>
+      </div>
+      <div class="panel">
+        <h3>닉네임 변경</h3>
+        <form id="form-nickname" class="inline-form">
+          <input type="text" id="mypage-nickname" maxlength="16" required />
+          <button type="submit" class="btn">변경</button>
+        </form>
+      </div>
+      <div class="panel">
+        <h3>내 대회 주최 신청 현황</h3>
+        <div id="my-applications" class="card-list"></div>
+      </div>
+      <div class="panel">
+        <h3>참가 현황</h3>
+        <p class="desc">내가 참가 신청한(참가 중이거나 앞으로 참가할) 대회 목록입니다.</p>
+        <div id="my-participation-list" class="card-list"></div>
+      </div>
+      <div class="panel">
+        <h3>내가 주최하는 대회</h3>
+        <div id="my-competitions" class="card-list"></div>
+      </div>
+      <div class="panel account-delete-panel">
+        <button type="button" class="link-small" id="btn-delete-account-start">회원 탈퇴</button>
+        <div id="delete-account-flow" class="hidden">
+          <p class="desc">계정을 삭제하면 되돌릴 수 없습니다. 단, 주최 중인 대회·참가 신청·기록은 자동으로 삭제되지 않으니 필요하면 먼저 정리해주세요.</p>
+          <form id="form-delete-account" class="inline-form">
+            <input type="password" id="delete-account-password" placeholder="비밀번호 확인" required autocomplete="current-password" />
+            <button type="submit" class="btn small danger">탈퇴 확인</button>
+          </form>
+          <div id="delete-account-final" class="hidden">
+            <p class="desc">정말로 탈퇴하려면 아래 버튼을 눌러주세요. 되돌릴 수 없습니다.</p>
+            <button type="button" class="btn small danger" id="btn-delete-account-final">네, 회원 탈퇴합니다</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 라이선스 (C License = 큐브, A License = ADOFAI) -->
+    <section id="view-license" class="view hidden">
+      <h2>라이선스</h2>
+      <p class="desc">
+        C License는 큐브, A License는 ADOFAI(얼불춤) 라이선스입니다. 실제 플레이는 이 앱이 아니라
+        지정된 오프라인 대회(큐브) · 실제 ADOFAI 게임(A License)에서 이루어지며, 이 페이지는 발급 여부와
+        지정 종목/레벨을 확인하는 용도입니다.
+      </p>
+      <div id="license-cards" class="license-cards"></div>
+    </section>
+
+    <!-- 대회 상세 -->
+    <section id="view-detail" class="view hidden">
+      <button class="btn small" id="btn-back-to-list">← 목록으로</button>
+      <h2><span id="detail-type-mark"></span><span id="detail-title">-</span></h2>
+      <p id="detail-desc" class="desc"></p>
+      <p class="meta">개최일: <span id="detail-date"></span> · 주최자: <span id="detail-organizer"></span> · 상태: <span id="detail-status" class="badge"></span></p>
+
+      <div class="detail-tabs">
+        <button type="button" class="detail-tab-btn active" id="tab-btn-detail-info">정보</button>
+        <button type="button" class="detail-tab-btn" id="tab-btn-detail-schedule">일정</button>
+        <button type="button" class="detail-tab-btn" id="tab-btn-detail-roster">참가자 목록</button>
+      </div>
+
+      <div id="detail-tab-schedule-panel" class="hidden">
+        <div class="panel">
+          <h3>대회 일정</h3>
+          <p class="desc">대회 진행 순서를 안내하는 일정표입니다.</p>
+          <form id="form-add-schedule" class="inline-form hidden">
+            <input type="text" id="schedule-time" placeholder="시간 (예: 10:00)" maxlength="30" required />
+            <input type="text" id="schedule-title" placeholder="내용 (예: 3x3x3 예선 시작)" maxlength="80" required />
+            <button type="submit" class="btn small">추가</button>
+          </form>
+          <div id="schedule-list" class="card-list"></div>
+        </div>
+      </div>
+
+      <div id="detail-tab-roster-panel" class="hidden">
+        <div id="competition-roster" class="panel"></div>
+      </div>
+
+      <div id="detail-tab-info-panel">
+      <div id="detail-announcement-banner" class="announcement-banner hidden">
+        <button type="button" class="announcement-toggle" id="btn-detail-announcement-toggle">
+          <strong>📢 대회 공지</strong><span id="detail-announcement-hint" class="announcement-hint">(누르면 펼치기)</span>
+        </button>
+        <div id="detail-announcement-detail" class="announcement-detail hidden">
+          <span id="detail-announcement-text" class="announcement-text"></span>
+        </div>
+      </div>
+
+      <div id="organizer-actions" class="inline-form hidden">
+        <button type="button" class="btn small primary" id="btn-start-competition">대회 시작</button>
+        <button type="button" class="btn small primary" id="btn-start-participation">참가 신청 시작하기</button>
+        <button type="button" class="btn small" id="btn-close-participation">참가 신청 마감</button>
+        <button type="button" class="btn small" id="btn-close-events">대회 종목추가 종료</button>
+        <button type="button" class="btn small" id="btn-reopen-events">종목추가 재개</button>
+        <button type="button" class="btn small" id="btn-edit-dates">날짜 변경</button>
+        <button type="button" class="btn small" id="btn-badge-maker">명찰 발급</button>
+        <button type="button" class="btn small" id="btn-badge-maker-bulk">전체 명찰 일괄 발급</button>
+        <button type="button" class="btn small" id="btn-end-competition">대회 종료</button>
+        <button type="button" class="btn small danger" id="btn-delete-competition">대회 삭제</button>
+      </div>
+
+      <div id="day-end-actions" class="inline-form hidden"></div>
+
+      <form id="form-edit-dates" class="plain-form hidden">
+        <label>시작일</label>
+        <input type="date" id="edit-startdate" required />
+        <div id="edit-enddate-wrap">
+          <label>종료일</label>
+          <input type="date" id="edit-enddate" />
+        </div>
+        <p id="edit-dates-minifast-notice" class="desc hidden">MINI/FAST 대회는 하루만 개최할 수 있어 종료일이 시작일과 같게 저장됩니다.</p>
+        <div class="inline-form">
+          <button type="submit" class="btn small primary">저장</button>
+          <button type="button" class="btn small" id="btn-cancel-edit-dates">취소</button>
+        </div>
+      </form>
+
+      <div id="coorganizer-panel" class="panel hidden">
+        <h3>공동 주최자 관리</h3>
+        <form id="form-add-coorganizer" class="inline-form">
+          <input type="text" id="coorganizer-nickname" placeholder="닉네임으로 검색" required />
+          <button type="submit" class="btn small">공동 주최자 추가</button>
+        </form>
+        <div id="coorganizers-list" class="card-list"></div>
+      </div>
+
+      <div id="staff-panel" class="panel hidden">
+        <h3>스태프 관리</h3>
+        <p class="desc">스태프는 종목 추가/삭제와 스크램블 등록·공개 설정을 할 수 있지만, 대회 시작/종료·공동 주최자·참가자 기록·순위 관리는 할 수 없습니다.</p>
+        <form id="form-add-staff" class="inline-form">
+          <input type="text" id="staff-nickname" placeholder="닉네임으로 검색" required />
+          <button type="submit" class="btn small">스태프 추가</button>
+        </form>
+        <div id="staff-list" class="card-list"></div>
+      </div>
+
+      <div id="my-records-panel" class="panel hidden">
+        <h3>내 기록</h3>
+        <div id="my-records-list" class="card-list"></div>
+      </div>
+
+      <div id="event-request-panel" class="panel hidden">
+        <h3>종목 추가 신청</h3>
+        <p class="desc">이 대회에 없는 종목을 추가해달라고 주최자에게 요청할 수 있습니다.</p>
+        <form id="form-event-request" class="inline-form">
+          <input type="text" id="event-request-name" placeholder="종목명" required maxlength="30" />
+          <select id="event-request-format">
+            <option value="ao5">Ao5 (5회 평균)</option>
+            <option value="mo3">Mo3 (3회 평균)</option>
+            <option value="single">단일 (1회)</option>
+          </select>
+          <button type="submit" class="btn small">신청</button>
+        </form>
+        <div id="my-event-requests" class="card-list"></div>
+      </div>
+
+      <div id="organizer-tools" class="panel hidden">
+        <h3>종목 추가 신청 승인 대기 (주최자 전용)</h3>
+        <div id="event-requests-pending" class="card-list"></div>
+
+        <h3>종목 직접 추가 (주최자 전용)</h3>
+        <form id="form-add-event" class="inline-form">
+          <select id="event-preset">
+            <option value="3x3x3 큐브">3x3x3 큐브</option>
+            <option value="2x2x2 큐브">2x2x2 큐브</option>
+            <option value="4x4x4 큐브">4x4x4 큐브</option>
+            <option value="5x5x5 큐브">5x5x5 큐브</option>
+            <option value="6x6x6 큐브">6x6x6 큐브</option>
+            <option value="7x7x7 큐브">7x7x7 큐브</option>
+            <option value="한손(OH) 3x3x3">한손(OH) 3x3x3</option>
+            <option value="피라밍크스">피라밍크스</option>
+            <option value="스큐브">스큐브</option>
+            <option value="custom">직접 입력...</option>
+          </select>
+          <input type="text" id="event-custom-name" class="hidden" placeholder="종목명 입력" maxlength="30" />
+          <select id="event-format">
+            <option value="ao5">Ao5 (5회 평균)</option>
+            <option value="mo3">Mo3 (3회 평균)</option>
+            <option value="single">단일 (1회)</option>
+          </select>
+          <button type="submit" class="btn">종목 추가</button>
+        </form>
+      </div>
+
+      <div id="events-list"></div>
+      </div>
+    </section>
+
+    <!-- 입상 내역 -->
+    <section id="view-awards" class="view hidden">
+      <h2>입상 내역</h2>
+      <p class="desc">종료된 대회에서 3등 이내 입상자만 표시됩니다. (MINI/FAST 대회는 MINI/FAST 탭에서 따로 확인하세요)</p>
+      <div class="tab-row">
+        <button type="button" class="tab-pill active" id="awards-mode-all">전체</button>
+        <button type="button" class="tab-pill" id="awards-mode-event">종목별</button>
+        <button type="button" class="tab-pill" id="awards-mode-comp">대회별</button>
+      </div>
+      <div id="awards-event-tabs" class="tab-row"></div>
+      <div id="awards-sub-tabs" class="tab-row"></div>
+      <div id="awards-list" class="card-list"></div>
+    </section>
+
+    <!-- OBD Live -->
+    <section id="view-rankings" class="view hidden">
+      <div id="rankings-list-view">
+        <h2>OBD Live</h2>
+        <p class="desc">OBD Live로 확인할 대회를 선택하세요. (아직 시작하지 않은 대회는 표시되지 않습니다)</p>
+        <div class="tab-row">
+          <button type="button" class="tab-pill active" id="rankings-filter-active">진행 중인 대회</button>
+          <button type="button" class="tab-pill" id="rankings-filter-ended">종료된 대회</button>
+        </div>
+        <div id="rankings-comp-list" class="card-list"></div>
+      </div>
+      <div id="rankings-detail-view" class="hidden">
+        <button class="btn small" id="btn-rankings-back">← 목록으로</button>
+        <h2 id="rankings-detail-title">-</h2>
+        <div id="rankings-event-tabs" class="tab-row"></div>
+        <div id="rankings-round-tabs" class="tab-row"></div>
+        <div id="rankings-table-container"></div>
+      </div>
+    </section>
+
+    <!-- 메신저 (주최자·공동 주최자·스태프 전용 대화방) -->
+    <section id="view-messenger" class="view hidden">
+      <div id="messenger-list-view">
+        <h2>메신저</h2>
+        <p class="desc">주최자·공동 주최자·스태프로 참여 중인 대회의 대화방 목록입니다.</p>
+        <div id="messenger-room-list" class="card-list"></div>
+      </div>
+      <div id="messenger-room-view" class="hidden">
+        <button class="btn small" id="btn-messenger-back">← 목록으로</button>
+        <h2 id="messenger-room-title">-</h2>
+        <div class="announcement-banner">
+          <button type="button" class="announcement-toggle" id="btn-messenger-announcement-toggle">
+            <strong>📢 대회 공지</strong>
+            <span id="messenger-announcement-current" class="announcement-hint announcement-text">공지 없음 (누르면 펼치기)</span>
+          </button>
+          <div id="messenger-announcement-detail" class="announcement-detail hidden">
+            <p class="desc">이 대회 상세 화면에 참가자 모두에게 표시되는 공지입니다. 주최자·공동 주최자·스태프 누구나 설정할 수 있습니다.</p>
+            <form id="form-messenger-announcement" class="inline-form">
+              <textarea id="messenger-announcement-input" placeholder="공지 내용 (비우고 저장하면 삭제됨, Enter로 줄바꿈 가능)" maxlength="500" rows="3"></textarea>
+              <button type="submit" class="btn small">공지 저장</button>
+            </form>
+          </div>
+        </div>
+        <div id="team-chat-messages" class="kakao-chat"></div>
+        <form id="form-team-chat" class="kakao-input-bar">
+          <input type="text" id="team-chat-text" placeholder="메시지 입력" maxlength="500" required />
+          <button type="submit" class="btn small primary">전송</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- 관리자 -->
+    <section id="view-admin" class="view hidden">
+      <h2>관리자 페이지</h2>
+      <div class="panel">
+        <h3>대회 직접 개최</h3>
+        <p class="desc">관리자는 신청·승인 절차 없이 바로 대회를 개최할 수 있습니다.</p>
+        <form id="form-admin-host" class="plain-form">
+          <label>대회명</label>
+          <input type="text" id="admin-host-title" required maxlength="40" />
+          <label>대회 유형</label>
+          <select id="admin-host-type">
+            <option value="일반">일반</option>
+            <option value="MINI">MINI</option>
+            <option value="FAST">FAST</option>
+          </select>
+          <label>대회 소개</label>
+          <textarea id="admin-host-desc" rows="4" maxlength="500"></textarea>
+          <label>개최일 (시작일)</label>
+          <input type="date" id="admin-host-date" required />
+          <div id="admin-host-end-date-wrap">
+            <label>종료일 (2일 이상 진행되는 대회인 경우, 선택)</label>
+            <input type="date" id="admin-host-end-date" />
+          </div>
+          <p id="admin-host-minifast-notice" class="desc hidden">MINI/FAST 대회는 하루만 개최할 수 있습니다.</p>
+          <label>종목 선택 (최소 1개)</label>
+          <div id="admin-host-events-checkboxes" class="checkbox-grid"></div>
+          <label>기타 종목 (쉼표로 구분, 선택)</label>
+          <input type="text" id="admin-host-events-custom" />
+          <button type="submit" class="btn primary">바로 개최하기</button>
+        </form>
+      </div>
+      <div class="panel">
+        <h3>전체 공지</h3>
+        <p class="desc">모든 이용자에게 화면 상단에 표시되는 공지입니다. 최대 2개까지 동시에 띄울 수 있습니다.</p>
+        <p id="admin-announcement-current" class="desc announcement-text">공지 없음</p>
+        <form id="form-admin-announcement" class="inline-form">
+          <textarea id="admin-announcement-input" placeholder="공지 내용 (비우고 저장하면 삭제됨, Enter로 줄바꿈 가능)" maxlength="500" rows="3"></textarea>
+          <button type="submit" class="btn small">공지 저장</button>
+        </form>
+        <p id="admin-announcement-current-2" class="desc announcement-text">공지 2 없음</p>
+        <form id="form-admin-announcement-2" class="inline-form">
+          <textarea id="admin-announcement-input-2" placeholder="공지 2 내용 (비우고 저장하면 삭제됨, Enter로 줄바꿈 가능)" maxlength="500" rows="3"></textarea>
+          <button type="submit" class="btn small">공지 2 저장</button>
+        </form>
+      </div>
+      <div class="panel">
+        <h3>대회 주최 신청 승인 대기</h3>
+        <div id="admin-pending-list" class="card-list"></div>
+      </div>
+      <div class="panel">
+        <h3>처리된 신청 내역</h3>
+        <div id="admin-history-list" class="card-list"></div>
+      </div>
+      <div class="panel">
+        <h3>관리자 추가</h3>
+        <form id="form-add-admin" class="inline-form">
+          <input type="text" id="admin-target-nickname" placeholder="닉네임으로 검색" required />
+          <button type="submit" class="btn">관리자로 지정</button>
+        </form>
+        <div id="admins-list" class="card-list"></div>
+      </div>
+      <div class="panel">
+        <h3>라이선스 관리</h3>
+        <p class="desc">
+          C License(큐브) · A License(ADOFAI)를 발급/회수하고, 지정 종목(C)·지정 레벨(A)을 관리합니다.
+          실제 대회·게임 플레이는 앱 밖에서 이루어지며, 여기서는 자격만 관리합니다.
+        </p>
+        <form id="form-license-search" class="inline-form">
+          <input type="text" id="license-target-nickname" placeholder="닉네임으로 검색" required />
+          <button type="submit" class="btn">검색</button>
+        </form>
+        <div id="license-admin-target"></div>
+      </div>
+    </section>
+
+  </main>
+  <footer class="app-footer">
+    <a href="rules.html" target="_blank" rel="noopener">대회 규정</a> · <a href="privacy.html" target="_blank" rel="noopener">개인정보처리방침</a>
+  </footer>
+</div>
+
+<!-- 상장 미리보기/다운로드 모달 -->
+<div id="certificate-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <button type="button" class="modal-close" id="btn-close-cert-modal" aria-label="닫기">✕</button>
+    <canvas id="certificate-canvas"></canvas>
+    <input type="text" id="cert-name-input" placeholder="이름 (닉네임 대신 실명 등으로 수정 가능)" maxlength="30" />
+    <div class="modal-actions">
+      <button type="button" class="btn primary" id="btn-download-cert">이미지로 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 명찰 미리보기/다운로드 모달 -->
+<div id="badge-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <button type="button" class="modal-close" id="btn-close-badge-modal" aria-label="닫기">✕</button>
+    <canvas id="badge-canvas"></canvas>
+    <input type="text" id="badge-name-input" placeholder="이름 (닉네임 대신 실명 등으로 수정 가능)" maxlength="30" />
+    <div class="modal-actions">
+      <button type="button" class="btn primary" id="btn-download-badge">이미지로 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 상장/명찰 일괄 발급 전 이름 확인·수정 모달 -->
+<div id="bulk-edit-modal" class="modal-overlay hidden">
+  <div class="modal-box bulk-edit-box">
+    <button type="button" class="modal-close" id="btn-close-bulk-edit-modal" aria-label="닫기">✕</button>
+    <h3 id="bulk-edit-title">이름 확인</h3>
+    <p class="desc">다운로드 전에 이름을 닉네임 대신 실명 등으로 바꿀 수 있습니다.</p>
+    <div id="bulk-edit-list" class="bulk-edit-list"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn primary" id="btn-bulk-edit-confirm">일괄 다운로드</button>
+    </div>
+  </div>
+</div>
+
+<!-- 다일차 대회의 "N일차 종료" 시 그날 종목 중 결선이 끝난 종목만 골라 공개하는 모달 -->
+<div id="day-end-modal" class="modal-overlay hidden">
+  <div class="modal-box day-end-box">
+    <button type="button" class="modal-close" id="btn-close-day-end-modal" aria-label="닫기">✕</button>
+    <h3 id="day-end-modal-title">일차 종료 - 종목 선택</h3>
+    <p class="desc">결선이 끝난 종목만 선택하면, 그 종목만 입상 내역/상장 발급에서 먼저 공개됩니다.</p>
+    <div id="day-end-event-list" class="day-end-event-list"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn primary" id="btn-day-end-confirm">선택한 종목 종료</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK (compat, classic script - Electron file:// 환경에서도 안전) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script src="js/firebase-config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/scramble-generator.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/data.js"></script>
+<script src="js/organizer.js"></script>
+<script src="js/practice.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/license.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="js/app.js"></script>
+<script src="js/certificate.js"></script>
+</body>
+</html>

@@ -1,0 +1,317 @@
+function showToast(message, type = "") {
+  const el = document.getElementById("toast");
+  el.textContent = message;
+  el.className = "toast" + (type ? " " + type : "");
+  el.classList.remove("hidden");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => el.classList.add("hidden"), 3200);
+}
+
+function el(id) { return document.getElementById(id); }
+
+// 종목 이름 표기가 다른(예: "클락"/"Clock") 같은 종목을 하나로 묶어서 보여주기 위한
+// 정규화. 입상 내역에서 종목별/대회별로 묶을 때 이 이름을 기준으로 그룹화한다.
+function canonicalEventName(name) {
+  const trimmed = (name == null ? "" : String(name)).trim();
+  if (trimmed.toLowerCase() === "clock" || trimmed === "클락") return "클락";
+  return trimmed;
+}
+
+// 종목 이름을 WCA 공인 종목 종류로 분류한다. 이 서비스가 기본 지원하는
+// 2x2x2~7x7x7, 한손(OH) 3x3x3, 피라밍크스, 스큐브, 클락이 "공인 종목"이고
+// (규정 5조), 그 외 "종목 추가 신청"으로 만들어진 종목은 전부 "비공인 종목"이다.
+// 상장/명찰의 종목 아이콘 선택과 종목 목록의 공인/비공인 표시가 모두 이 분류를 쓴다.
+function classifyWcaEvent(name) {
+  const n = String(name || "");
+  if (n.includes("피셔") || /fisher/i.test(n)) return null; // 피셔 큐브 등 변형 큐브는 비공인
+  if (n.includes("한손") || /\bOH\b/i.test(n)) return "OH";
+  if (n.includes("피라밍크스") || /pyraminx/i.test(n)) return "PYRA";
+  if (n.includes("스큐브") || /skewb/i.test(n)) return "SKEWB";
+  if (n.includes("클락") || /clock/i.test(n)) return "CLOCK";
+  for (const size of [2, 3, 4, 5, 6, 7]) {
+    if (n.includes(`${size}x${size}x${size}`)) return `CUBE${size}`;
+  }
+  return null;
+}
+
+function isOfficialWcaEvent(name) {
+  return classifyWcaEvent(name) !== null;
+}
+
+// 공지 간략히 보기: 접혀 있을 때는 첫 줄만, 그것도 너무 길면 잘라서 보여준다.
+// 전체 내용은 펼쳤을 때(또는 관리자가 항상 볼 수 있는 전체 공지 배너에서만) 보인다.
+function summarizeAnnouncement(text, maxLen = 40) {
+  if (!text) return "";
+  const firstLine = text.split("\n")[0];
+  const hasMore = text.length > firstLine.length || firstLine.length > maxLen;
+  const cut = firstLine.length > maxLen ? firstLine.slice(0, maxLen) : firstLine;
+  return hasMore ? cut + "..." : cut;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str == null ? "" : String(str);
+  return div.innerHTML;
+}
+
+function formatDate(value) {
+  if (!value) return "-";
+  try {
+    const d = value.toDate ? value.toDate() : new Date(value);
+    return d.toLocaleDateString("ko-KR");
+  } catch (e) {
+    return String(value);
+  }
+}
+
+function formatDateRange(start, end) {
+  if (!start) return "-";
+  if (!end || end === start) return start;
+  return `${start} ~ ${end}`;
+}
+
+// 대회가 총 며칠짜리인지 (시작일=종료일이면 1일). "N일차 종료" 버튼 개수와
+// 종목별 일차 지정 select의 선택지 수를 결정하는 데 쓰인다.
+function competitionTotalDays(comp) {
+  if (!comp || !comp.startDate || !comp.endDate || comp.startDate === comp.endDate) return 1;
+  const start = new Date(comp.startDate);
+  const end = new Date(comp.endDate);
+  const diff = Math.round((end - start) / 86400000);
+  return diff > 0 ? diff + 1 : 1;
+}
+
+// 주최자 표시용 문자열: 공동 주최자가 있으면 함께 표시한다.
+async function organizerDisplayText(comp) {
+  const uids = comp.coOrganizerUids || [];
+  if (uids.length === 0) return comp.organizerNickname || "-";
+  const profiles = await Promise.all(uids.map(uid => fetchUserProfile(uid).catch(() => null)));
+  const coNames = profiles.map((p, i) => (p ? p.nickname : null)).filter(Boolean);
+  if (coNames.length === 0) return comp.organizerNickname || "-";
+  return `${comp.organizerNickname || "-"} (공동주최: ${coNames.join(", ")})`;
+}
+
+// MINI/FAST 대회는 일반 대회 목록·참가 신청에서는 제외하고, 별도의 MINI/FAST
+// 탭에서만 다룬다.
+function isMinifastCompetition(comp) {
+  return !!comp && (comp.competitionType === "MINI" || comp.competitionType === "FAST");
+}
+
+// MINI/FAST 배지 HTML - MINI/FAST는 하루만 개최 가능하므로 개최일을 함께 표시한다.
+// 일반 대회면 빈 문자열을 반환한다.
+function minifastMarkHtml(comp) {
+  if (!isMinifastCompetition(comp)) return "";
+  const cls = comp.competitionType === "MINI" ? "type-mini" : "type-fast";
+  return `<span class="badge ${cls}">${escapeHtml(comp.competitionType)} ${escapeHtml(comp.startDate || "")}</span>`;
+}
+
+function isUserOrganizerOf(comp) {
+  if (!AppState.user || !comp) return false;
+  if (comp.organizerUid === AppState.user.uid) return true;
+  return Array.isArray(comp.coOrganizerUids) && comp.coOrganizerUids.includes(AppState.user.uid);
+}
+
+// 스태프: 종목/스크램블 관리는 가능하지만 그 외 주최자 권한(시작/종료/공동주최자/
+// 참가자 기록·순위 관리)은 없는 보조 역할.
+function isUserStaffOf(comp) {
+  if (!AppState.user || !comp) return false;
+  return Array.isArray(comp.staffUids) && comp.staffUids.includes(AppState.user.uid);
+}
+
+// 대회가 아직 시작되지 않았는지 여부. 개최일이 지나도, 주최자가 "대회 시작" 버튼을
+// 눌러 started를 true로 만들기 전까지는 무조건 참가신청중 상태이며 기록도 입력할 수 없다.
+// (개최일은 더 이상 자동 전환 기준으로 쓰이지 않고 단순 표시용으로만 남는다)
+function isNotStarted(comp) {
+  return !!comp && comp.started !== true;
+}
+
+// 참가 신청을 아직 받기 시작하지 않았는지 여부. 이 기능이 생긴 후 승인된
+// 대회는 participationStarted가 false로 명시되어 주최자가 "참가 신청 시작하기"를
+// 눌러야만 참가 신청을 받을 수 있다. 반면 이 기능이 생기기 전부터 있던 대회는
+// participationStarted 필드 자체가 없으므로(undefined) 이미 시작된 것으로 본다.
+function isParticipationStarted(comp) {
+  return !!comp && comp.participationStarted !== false;
+}
+
+// 상태 표시 우선순위: 종료됨 > 진행중(시작됨) > 개최예정(참가 신청 아직 시작 안 함) >
+// 신청마감/참가신청중(아직 대회 시작 전).
+// "신청마감"은 어디까지나 대회 시작 전에 참가 신청만 먼저 끊어둔 상태를 뜻하므로,
+// "대회 시작"을 누르면 참가 신청을 마감했었는지와 무관하게 곧바로 "진행중"으로 보여야 한다.
+function getCompetitionStatusInfo(comp) {
+  if (comp.status === "ended") return { label: "종료됨", cls: "ended" };
+  if (!isNotStarted(comp)) return { label: "진행중", cls: "active" };
+  if (!isParticipationStarted(comp)) return { label: "개최예정", cls: "upcoming" };
+  if (comp.participationClosed === true) return { label: "신청마감", cls: "closed" };
+  return { label: "참가신청중", cls: "upcoming" };
+}
+
+// 기록 등록이 잠겨야 하는 상태인지: 대회 종료 후, 또는 아직 시작 전
+function isRecordsLocked(comp) {
+  return comp.status === "ended" || isNotStarted(comp);
+}
+
+// 기권(참가 취소 대신 기록 전체를 DNS로 채우는 것) 여부. "참가 취소"와 달리 참가자
+// 문서는 남아있고 roundMeta.status도 바뀌지 않으므로, 그 라운드 기록이 전부
+// DNS인지로 기권 여부를 판단한다.
+function isForfeitedRound(times) {
+  return Array.isArray(times) && times.length > 0 &&
+    times.every(t => (t || "").trim().toUpperCase() === "DNS");
+}
+
+function parseTimeToSeconds(str) {
+  if (!str) return Infinity;
+  const s = String(str).trim().toUpperCase();
+  if (s === "DNF" || s === "DNS" || s === "") return Infinity;
+  if (s.includes(":")) {
+    const [m, rest] = s.split(":");
+    const sec = parseFloat(rest);
+    const min = parseInt(m, 10);
+    if (isNaN(sec) || isNaN(min)) return Infinity;
+    return min * 60 + sec;
+  }
+  const v = parseFloat(s);
+  return isNaN(v) ? Infinity : v;
+}
+
+function formatSecondsToTime(seconds) {
+  if (seconds == null || seconds === Infinity || isNaN(seconds)) return "DNF";
+  if (seconds >= 60) {
+    const m = Math.floor(seconds / 60);
+    const s = (seconds % 60).toFixed(2).padStart(5, "0");
+    return `${m}:${s}`;
+  }
+  return seconds.toFixed(2);
+}
+
+// 종목 기록 형식: "ao5"(5회 중 최고/최저 제외 평균), "mo3"(3회 단순 평균), "single"(1회 단일 기록)
+function normalizeFormat(format) {
+  return ["ao5", "mo3", "single"].includes(format) ? format : "ao5";
+}
+
+function solveCountForFormat(format) {
+  if (format === "mo3") return 3;
+  if (format === "single") return 1;
+  return 5;
+}
+
+function formatLabel(format) {
+  if (format === "mo3") return "Mo3";
+  if (format === "single") return "단일";
+  return "Ao5";
+}
+
+function resultLabelForFormat(format) {
+  return format === "single" ? "기록" : "평균";
+}
+
+function computeAverage(times, format) {
+  const parsed = (times || []).map(t => parseTimeToSeconds(t));
+  if (format === "single") {
+    return parsed[0] != null ? parsed[0] : Infinity;
+  }
+  if (format === "mo3") {
+    if (parsed.some(v => v === Infinity)) return Infinity;
+    return parsed.reduce((a, b) => a + b, 0) / parsed.length;
+  }
+  const sorted = [...parsed].sort((a, b) => a - b);
+  const trimmed = sorted.slice(1, sorted.length - 1);
+  if (trimmed.length === 0 || trimmed.some(v => v === Infinity)) return Infinity;
+  return trimmed.reduce((a, b) => a + b, 0) / trimmed.length;
+}
+
+// 결승(입상 기준) 라운드: 주최자가 직접 지정했으면 그 값, 아니면 그 종목에
+// 스크램블이 마지막으로 등록된 라운드(maxScrambleRound)를 자동으로 사용한다.
+function effectiveFinalRound(ev) {
+  if (ev.finalRoundOverride != null && ev.finalRoundOverride !== "") return Number(ev.finalRoundOverride);
+  return ev.maxScrambleRound || 1;
+}
+
+// 해당 라운드의 순위를 계산한다. 주최자가 순위(roundMeta.rank)를 직접 지정했으면
+// 그 값을 우선 순서로 쓰고, 지정하지 않은 참가자는 평균 기록순으로 자동 정렬해
+// 순위를 매긴다 - OBD Live 순위표와 같은 방식이라, 주최자가 순위를 따로 입력하지
+// 않은 대회도 결승 자동 순위가 입상 내역에 그대로 반영된다. 이전 라운드에서
+// 탈락했거나, 기권(전부 DNS)이라 유효 평균이 없는 참가자는 순위 없음(null)으로
+// 취급해 입상 내역에서 제외된다.
+function computeAutoPlacements(participants, format, round) {
+  let list = participants;
+  if (round > 1) {
+    list = list.filter(p => {
+      const prevMeta = p.roundMeta && p.roundMeta[round - 1];
+      return !prevMeta || prevMeta.status !== "eliminated";
+    });
+  }
+  const solveCount = solveCountForFormat(format);
+  const rows = list.map(p => {
+    const roundTimes = (p.roundTimes && p.roundTimes[round]) || [];
+    // solveCount 길이로 맞춰야 mo3/ao5 계산이 빈 배열에서 NaN이 되지 않는다
+    // (OBD Live 순위표와 동일하게 미입력 기록은 빈 문자열 = DNF로 취급).
+    const times = Array.isArray(roundTimes) && roundTimes.length === solveCount ? roundTimes : new Array(solveCount).fill("");
+    const meta = (p.roundMeta && p.roundMeta[round]) || {};
+    const average = computeAverage(times, format);
+    const manualRank = meta.rank != null && meta.rank !== "" ? Number(meta.rank) : null;
+    const sortKey = manualRank != null ? manualRank : 100000 + average;
+    return { p, times, average, sortKey };
+  }).sort((a, b) => a.sortKey - b.sortKey);
+
+  return rows.map((r, idx) => ({
+    p: r.p,
+    round,
+    times: r.times,
+    average: r.average,
+    rank: r.average === Infinity ? null : idx + 1
+  }));
+}
+
+function bestSingleFromTimes(times) {
+  const parsed = (times || []).map(t => parseTimeToSeconds(t)).filter(v => v !== Infinity);
+  return parsed.length === 0 ? Infinity : Math.min(...parsed);
+}
+
+const STATUS_LABEL = {
+  pending: "승인 대기",
+  approved: "승인됨",
+  rejected: "반려됨",
+  cancelled: "취소됨"
+};
+
+// ---- 테마(다크/라이트) 전환 ----
+function getStoredTheme() {
+  try { return localStorage.getItem("obdcube-theme"); } catch (e) { return null; }
+}
+
+function setStoredTheme(theme) {
+  try { localStorage.setItem("obdcube-theme", theme); } catch (e) {}
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  const icon = theme === "light" ? "🌙" : "☀️";
+  ["theme-toggle", "theme-toggle-app"].forEach(id => {
+    const btn = el(id);
+    if (btn) btn.textContent = icon;
+  });
+}
+
+function initThemeToggle() {
+  applyTheme(getStoredTheme() === "light" ? "light" : "dark");
+  const toggle = () => {
+    const next = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+    setStoredTheme(next);
+    applyTheme(next);
+  };
+  ["theme-toggle", "theme-toggle-app"].forEach(id => {
+    const btn = el(id);
+    if (btn) btn.addEventListener("click", toggle);
+  });
+}
+
+initThemeToggle();
+
+// 공지 배너: 평소엔 한 줄로 접혀 있다가 누르면 펼쳐지는 토글 버튼을 연결한다.
+function initAnnouncementToggle(toggleId, detailId) {
+  const btn = el(toggleId);
+  const detail = el(detailId);
+  if (!btn || !detail) return;
+  btn.addEventListener("click", () => {
+    detail.classList.toggle("hidden");
+  });
+}

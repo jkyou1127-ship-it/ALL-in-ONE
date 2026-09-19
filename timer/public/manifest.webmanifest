@@ -1,0 +1,16 @@
+{
+  "name": "큐브 연습",
+  "short_name": "큐브연습",
+  "description": "큐브 연습 타이머 - 스크램블 생성, 기록 통계, OLL/PLL 공식 학습",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

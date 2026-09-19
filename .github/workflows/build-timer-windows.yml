@@ -1,0 +1,36 @@
+name: Build Timer Windows exe
+
+on:
+  push:
+    branches:
+      - main
+      - 'claude/**'
+    paths:
+      - 'timer/**'
+      - '.github/workflows/build-timer-windows.yml'
+  workflow_dispatch: {}
+
+defaults:
+  run:
+    working-directory: timer
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm ci
+
+      - run: npm run electron:build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Release Build 1.0
+          path: |
+            timer/release/*.exe
+          if-no-files-found: error

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="description" content="큐브 연습 타이머 - 스크램블 생성, 기록 통계, OLL/PLL 공식 학습" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css"
+    />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@500;600;700&display=swap" />
+    <title>큐브 연습</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "cubing/scramble": "./vendor/cubing/scramble/index.js",
+          "cubing/alg": "./vendor/cubing/alg/index.js",
+          "cubing/notation": "./vendor/cubing/notation/index.js",
+          "cubing/puzzles": "./vendor/cubing/puzzles/index.js",
+          "cubing/search": "./vendor/cubing/search/index.js",
+          "cubing/kpuzzle": "./vendor/cubing/kpuzzle/index.js",
+          "cubing/protocol": "./vendor/cubing/protocol/index.js",
+          "cubing/stream": "./vendor/cubing/stream/index.js",
+          "cubing/bluetooth": "./vendor/cubing/bluetooth/index.js",
+          "cubing/puzzle-geometry": "./vendor/cubing/puzzle-geometry/index.js",
+          "cubing/twisty": "./vendor/cubing/twisty/index.js",
+          "random-uint-below": "./vendor/random-uint-below/index.js",
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
+          "three/": "https://cdn.jsdelivr.net/npm/three@0.160.1/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

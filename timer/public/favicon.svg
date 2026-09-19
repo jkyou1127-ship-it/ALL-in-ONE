@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <g>
+      <polygon points="128.00,22.00 99.13,38.67 128.00,55.33 156.87,38.67" fill="#f4f5f7" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="156.87,38.67 128.00,55.33 156.87,72.00 185.74,55.33" fill="#f4f5f7" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="185.74,55.33 156.87,72.00 185.74,88.67 214.60,72.00" fill="#f4f5f7" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="99.13,38.67 70.26,55.33 99.13,72.00 128.00,55.33" fill="#f4f5f7" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="128.00,55.33 99.13,72.00 128.00,88.67 156.87,72.00" fill="#f4f5f7" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="156.87,72.00 128.00,88.67 156.87,105.33 185.74,88.67" fill="#f4f5f7" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="70.26,55.33 41.40,72.00 70.26,88.67 99.13,72.00" fill="#f4f5f7" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="99.13,72.00 70.26,88.67 99.13,105.33 128.00,88.67" fill="#f4f5f7" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="128.00,88.67 99.13,105.33 128.00,122.00 156.87,105.33" fill="#f4f5f7" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="41.40,72.00 70.26,88.67 70.26,122.00 41.40,105.33" fill="#f2822a" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="41.40,105.33 70.26,122.00 70.26,155.33 41.40,138.67" fill="#f2822a" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="41.40,138.67 70.26,155.33 70.26,188.67 41.40,172.00" fill="#f2822a" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="70.26,88.67 99.13,105.33 99.13,138.67 70.26,122.00" fill="#f2822a" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="70.26,122.00 99.13,138.67 99.13,172.00 70.26,155.33" fill="#f2822a" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="70.26,155.33 99.13,172.00 99.13,205.33 70.26,188.67" fill="#f2822a" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="99.13,105.33 128.00,122.00 128.00,155.33 99.13,138.67" fill="#f2822a" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="99.13,138.67 128.00,155.33 128.00,188.67 99.13,172.00" fill="#f2822a" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="99.13,172.00 128.00,188.67 128.00,222.00 99.13,205.33" fill="#f2822a" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="214.60,72.00 185.74,88.67 185.74,122.00 214.60,105.33" fill="#3b6cf6" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="214.60,105.33 185.74,122.00 185.74,155.33 214.60,138.67" fill="#3b6cf6" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="214.60,138.67 185.74,155.33 185.74,188.67 214.60,172.00" fill="#3b6cf6" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="185.74,88.67 156.87,105.33 156.87,138.67 185.74,122.00" fill="#3b6cf6" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="185.74,122.00 156.87,138.67 156.87,172.00 185.74,155.33" fill="#3b6cf6" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="185.74,155.33 156.87,172.00 156.87,205.33 185.74,188.67" fill="#3b6cf6" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="156.87,105.33 128.00,122.00 128.00,155.33 156.87,138.67" fill="#3b6cf6" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="156.87,138.67 128.00,155.33 128.00,188.67 156.87,172.00" fill="#3b6cf6" stroke="#00000022" stroke-width="1.5" />
+      <polygon points="156.87,172.00 128.00,188.67 128.00,222.00 156.87,205.33" fill="#3b6cf6" stroke="#00000022" stroke-width="1.5" />
+  </g>
+</svg>
